@@ -20,7 +20,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to render pages, captures text selection, tracks current page, draws annotation highlights/underlines, supports annotation search/filter/style/color/edit/delete/jump/export interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
+- `media/reader.js`: Browser-side reader app. It uses pdf.js to render pages, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers, supports annotation search/filter/style/color/edit/delete/jump/export interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
 - `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
 
 ## Build Output
@@ -63,6 +63,7 @@ VS Code command
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
+- Page-only notes are rendered as clickable markers in the page overlay and exported as native PDF comments.
 - Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
 - Vocabulary review uses a deliberately small interval list for now: due immediately, then 1, 3, 7, 14, and 30 days.

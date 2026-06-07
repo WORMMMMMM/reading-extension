@@ -157,6 +157,29 @@ textarea {
   outline-offset: 1px;
 }
 
+.page-note-marker {
+  position: absolute;
+  right: 10px;
+  z-index: 4;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 3px;
+  padding: 0;
+  color: #1f1f1f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+}
+
+.active-note-marker {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
 .side-panel {
   overflow: auto;
   height: 100vh;

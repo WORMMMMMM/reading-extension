@@ -366,6 +366,10 @@ function renderAnnotationOverlays() {
   });
 
   for (const annotation of state.annotations || []) {
+    if (isPageNoteAnnotation(annotation)) {
+      renderPageNoteMarker(annotation);
+    }
+
     for (const rect of annotation.rects || []) {
       const pageEl = document.querySelector(`.pdf-page[data-page="${rect.page}"]`);
       const layer = pageEl?.querySelector('.annotation-layer');
@@ -395,6 +399,35 @@ function renderAnnotationOverlays() {
       layer.appendChild(mark);
     }
   }
+}
+
+function renderPageNoteMarker(annotation) {
+  const page = annotation.page || 1;
+  const pageEl = document.querySelector(`.pdf-page[data-page="${page}"]`);
+  const layer = pageEl?.querySelector('.annotation-layer');
+  if (!pageEl || !layer) {
+    return;
+  }
+
+  const pageNotes = (state.annotations || []).filter(item => isPageNoteAnnotation(item) && (item.page || 1) === page);
+  const index = Math.max(0, pageNotes.findIndex(item => item.id === annotation.id));
+  const marker = document.createElement('button');
+  marker.className = `page-note-marker${annotation.id === activeAnnotationId ? ' active-note-marker' : ''}`;
+  marker.dataset.annotationId = annotation.id;
+  marker.type = 'button';
+  marker.title = annotation.note || 'Page note';
+  marker.textContent = 'N';
+  marker.style.background = annotation.color || '#ffd654';
+  marker.style.top = `${Math.min(88, 5 + index * 6)}%`;
+  marker.addEventListener('click', event => {
+    event.stopPropagation();
+    focusAnnotation(annotation, { scroll: false });
+  });
+  layer.appendChild(marker);
+}
+
+function isPageNoteAnnotation(annotation) {
+  return Boolean(annotation.note && annotation.page && !(annotation.rects || []).length);
 }
 
 function observePages() {
@@ -548,6 +581,9 @@ function focusAnnotation(annotation, options = {}) {
 
   if (annotation.page) {
     goToPage(annotation.page);
+    if (isPageNoteAnnotation(annotation)) {
+      requestAnimationFrame(() => scrollToNoteMarker(annotation));
+    }
   }
 }
 
@@ -604,6 +640,19 @@ function scrollToRect(rect) {
   const top = pageEl.offsetTop + rect.y * pageEl.offsetHeight - 80;
   viewer.scrollTo({
     top: Math.max(0, top),
+    behavior: 'smooth'
+  });
+}
+
+function scrollToNoteMarker(annotation) {
+  const pageEl = document.querySelector(`.pdf-page[data-page="${annotation.page || 1}"]`);
+  const marker = pageEl?.querySelector(`.page-note-marker[data-annotation-id="${annotation.id}"]`);
+  if (!pageEl || !marker) {
+    return;
+  }
+
+  viewer.scrollTo({
+    top: Math.max(0, pageEl.offsetTop + marker.offsetTop - 80),
     behavior: 'smooth'
   });
 }
