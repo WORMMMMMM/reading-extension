@@ -381,11 +381,17 @@ export class PaperReaderPanel {
           <option value="highlight">Highlight</option>
           <option value="underline">Underline</option>
         </select>
+        <select id="annotationSort">
+          <option value="position">Sort by paper order</option>
+          <option value="created">Sort by newest</option>
+          <option value="updated">Sort by recently edited</option>
+        </select>
         <div class="actions">
           <button id="exportAnnotations">Export Markdown</button>
           <button id="exportAnnotatedPdf">Export PDF</button>
         </div>
         <div id="annotationExportStatus" class="status-line"></div>
+        <div id="annotationListStatus" class="status-line"></div>
         <div id="annotationsList" class="list"></div>
       </section>
       <section class="tool-block list-block">

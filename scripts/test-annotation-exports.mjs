@@ -3,10 +3,25 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { PDFDocument } = require('pdf-lib');
-const { applyAnnotationsToPdf, formatAnnotationsMarkdown } = require('../out/annotationExports.js');
+const {
+  applyAnnotationsToPdf,
+  formatAnnotationsMarkdown,
+  sortAnnotationsByDocumentPosition
+} = require('../out/annotationExports.js');
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 const annotations = [
+  {
+    id: 'later-page',
+    page: 2,
+    rects: [{ page: 2, x: 0.1, y: 0.1, width: 0.2, height: 0.04 }],
+    color: '#ffaaa5',
+    kind: 'highlight',
+    selectedText: 'Conclusion caveat',
+    note: '',
+    createdAt: timestamp,
+    updatedAt: timestamp
+  },
   {
     id: 'highlight-with-note',
     page: 1,
@@ -50,6 +65,13 @@ assert.match(markdown, /> Transformer models align tokens across long contexts\.
 assert.match(markdown, /Important architecture claim\./);
 assert.match(markdown, /Page 1 \(underline, #8fd3ff\)/);
 assert.match(markdown, /Re-read this page before the group meeting\./);
+assert.ok(
+  markdown.indexOf('Transformer models align tokens') < markdown.indexOf('Conclusion caveat'),
+  'Markdown export should be ordered by document position'
+);
+
+const sortedIds = sortAnnotationsByDocumentPosition(annotations).map(item => item.id);
+assert.deepEqual(sortedIds, ['highlight-with-note', 'underline-only', 'page-note', 'later-page']);
 
 const sourcePdf = await PDFDocument.create();
 sourcePdf.addPage([400, 300]);

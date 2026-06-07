@@ -21,7 +21,9 @@ const wordNoteInput = document.getElementById('wordNoteInput');
 const annotationSearch = document.getElementById('annotationSearch');
 const annotationColorFilter = document.getElementById('annotationColorFilter');
 const annotationKindFilter = document.getElementById('annotationKindFilter');
+const annotationSort = document.getElementById('annotationSort');
 const annotationExportStatus = document.getElementById('annotationExportStatus');
+const annotationListStatus = document.getElementById('annotationListStatus');
 const annotationsList = document.getElementById('annotationsList');
 const dueWordsList = document.getElementById('dueWordsList');
 const wordsList = document.getElementById('wordsList');
@@ -202,6 +204,10 @@ function bindUi() {
   });
 
   annotationKindFilter.addEventListener('change', () => {
+    renderAnnotationsList(state.annotations || []);
+  });
+
+  annotationSort.addEventListener('change', () => {
     renderAnnotationsList(state.annotations || []);
   });
 
@@ -641,13 +647,20 @@ function readPage() {
 
 function renderAnnotationsList(items) {
   const filteredItems = filterAnnotations(items);
+  const sortedItems = sortAnnotationsForDisplay(filteredItems);
+  const visibleItems = sortedItems.slice(0, 50);
   annotationsList.innerHTML = '';
-  if (!filteredItems.length) {
-    annotationsList.appendChild(emptyItem('No annotations saved yet.'));
+  annotationListStatus.textContent = formatAnnotationListStatus(
+    visibleItems.length,
+    sortedItems.length,
+    items.length
+  );
+  if (!sortedItems.length) {
+    annotationsList.appendChild(emptyItem(items.length ? 'No matching annotations.' : 'No annotations saved yet.'));
     return;
   }
 
-  for (const item of filteredItems.slice(0, 50)) {
+  for (const item of visibleItems) {
     const node = document.createElement('article');
     node.className = `item annotation-item${item.id === activeAnnotationId ? ' active-item' : ''}`;
     node.dataset.annotationId = item.id;
@@ -689,6 +702,63 @@ function filterAnnotations(items) {
     ].join('\n').toLowerCase();
     return haystack.includes(query);
   });
+}
+
+function sortAnnotationsForDisplay(items) {
+  const sortMode = annotationSort.value;
+  return [...items].sort((a, b) => {
+    if (sortMode === 'created') {
+      return dateValue(b.createdAt) - dateValue(a.createdAt);
+    }
+    if (sortMode === 'updated') {
+      return dateValue(b.updatedAt) - dateValue(a.updatedAt);
+    }
+    return compareAnnotationPosition(a, b);
+  });
+}
+
+function compareAnnotationPosition(a, b) {
+  const aPosition = getAnnotationPosition(a);
+  const bPosition = getAnnotationPosition(b);
+
+  if (aPosition.page !== bPosition.page) {
+    return aPosition.page - bPosition.page;
+  }
+  if (aPosition.y !== bPosition.y) {
+    return aPosition.y - bPosition.y;
+  }
+  if (aPosition.x !== bPosition.x) {
+    return aPosition.x - bPosition.x;
+  }
+  return dateValue(a.createdAt) - dateValue(b.createdAt);
+}
+
+function getAnnotationPosition(annotation) {
+  const firstRect = annotation.rects?.[0];
+  return {
+    page: firstRect?.page ?? annotation.page ?? Number.MAX_SAFE_INTEGER,
+    y: firstRect?.y ?? Number.MAX_SAFE_INTEGER,
+    x: firstRect?.x ?? Number.MAX_SAFE_INTEGER
+  };
+}
+
+function formatAnnotationListStatus(shownCount, filteredCount, totalCount) {
+  if (!totalCount) {
+    return '0 annotations';
+  }
+  if (filteredCount !== totalCount) {
+    return `${shownCount} shown, ${filteredCount} matching of ${totalCount} annotations`;
+  }
+  if (shownCount !== filteredCount) {
+    return `${shownCount} shown of ${totalCount} annotations`;
+  }
+  if (totalCount === 1) {
+    return '1 annotation';
+  }
+  if (filteredCount === totalCount) {
+    return `${totalCount} annotation${totalCount === 1 ? '' : 's'}`;
+  }
+  return `${filteredCount} of ${totalCount} annotations`;
 }
 
 function focusAnnotation(annotation, options = {}) {
@@ -949,6 +1019,11 @@ function isDueForReview(item) {
     return true;
   }
   return new Date(nextReviewAt).getTime() <= Date.now();
+}
+
+function dateValue(value) {
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function formatReviewStatus(review) {

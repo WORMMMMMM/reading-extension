@@ -18,7 +18,7 @@ export function formatAnnotationsMarkdown(
     return lines.join('\n');
   }
 
-  for (const annotation of annotations) {
+  for (const annotation of sortAnnotationsByDocumentPosition(annotations)) {
     lines.push(
       `## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.kind ?? 'highlight'}, ${annotation.color ?? '#ffd654'})`
     );
@@ -37,6 +37,10 @@ export function formatAnnotationsMarkdown(
   }
 
   return lines.join('\n');
+}
+
+export function sortAnnotationsByDocumentPosition(annotations: AnnotationRecord[]) {
+  return [...annotations].sort(compareAnnotationsByDocumentPosition);
 }
 
 export async function applyAnnotationsToPdf(
@@ -161,4 +165,35 @@ function hexToRgb(hex: string) {
 
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function compareAnnotationsByDocumentPosition(a: AnnotationRecord, b: AnnotationRecord) {
+  const aPosition = getAnnotationPosition(a);
+  const bPosition = getAnnotationPosition(b);
+
+  if (aPosition.page !== bPosition.page) {
+    return aPosition.page - bPosition.page;
+  }
+  if (aPosition.y !== bPosition.y) {
+    return aPosition.y - bPosition.y;
+  }
+  if (aPosition.x !== bPosition.x) {
+    return aPosition.x - bPosition.x;
+  }
+
+  return dateValue(a.createdAt) - dateValue(b.createdAt);
+}
+
+function getAnnotationPosition(annotation: AnnotationRecord) {
+  const firstRect = annotation.rects?.[0];
+  return {
+    page: firstRect?.page ?? annotation.page ?? Number.MAX_SAFE_INTEGER,
+    y: firstRect?.y ?? Number.MAX_SAFE_INTEGER,
+    x: firstRect?.x ?? Number.MAX_SAFE_INTEGER
+  };
+}
+
+function dateValue(value: string) {
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
