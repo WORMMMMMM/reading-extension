@@ -9,6 +9,7 @@ const selectedText = document.getElementById('selectedText');
 const pageInput = document.getElementById('pageInput');
 const pageTotal = document.getElementById('pageTotal');
 const annotationColor = document.getElementById('annotationColor');
+const annotationKind = document.getElementById('annotationKind');
 const annotationEditStatus = document.getElementById('annotationEditStatus');
 const saveAnnotationButton = document.getElementById('saveAnnotation');
 const cancelAnnotationEditButton = document.getElementById('cancelAnnotationEdit');
@@ -19,6 +20,7 @@ const translationOutput = document.getElementById('translationOutput');
 const wordNoteInput = document.getElementById('wordNoteInput');
 const annotationSearch = document.getElementById('annotationSearch');
 const annotationColorFilter = document.getElementById('annotationColorFilter');
+const annotationKindFilter = document.getElementById('annotationKindFilter');
 const annotationExportStatus = document.getElementById('annotationExportStatus');
 const annotationsList = document.getElementById('annotationsList');
 const dueWordsList = document.getElementById('dueWordsList');
@@ -72,6 +74,7 @@ function bindUi() {
       page: readPage(),
       rects: latestSelectionRects,
       color: annotationColor.value,
+      kind: annotationKind.value,
       selectedText: text,
       note
     };
@@ -185,6 +188,10 @@ function bindUi() {
   });
 
   annotationColorFilter.addEventListener('change', () => {
+    renderAnnotationsList(state.annotations || []);
+  });
+
+  annotationKindFilter.addEventListener('change', () => {
     renderAnnotationsList(state.annotations || []);
   });
 
@@ -367,10 +374,16 @@ function renderAnnotationOverlays() {
       }
 
       const mark = document.createElement('div');
-      mark.className = `highlight${annotation.id === activeAnnotationId ? ' active-highlight' : ''}`;
+      const kind = annotation.kind || 'highlight';
+      mark.className = `highlight ${kind === 'underline' ? 'underline-mark' : 'highlight-mark'}${annotation.id === activeAnnotationId ? ' active-highlight' : ''}`;
       mark.dataset.annotationId = annotation.id;
       mark.title = annotation.note || annotation.selectedText || 'Annotation';
-      mark.style.background = colorWithAlpha(annotation.color || '#ffd654', 0.42);
+      if (kind === 'underline') {
+        mark.style.color = annotation.color || '#ffd654';
+        mark.style.background = 'transparent';
+      } else {
+        mark.style.background = colorWithAlpha(annotation.color || '#ffd654', 0.42);
+      }
       mark.style.left = `${rect.x * 100}%`;
       mark.style.top = `${rect.y * 100}%`;
       mark.style.width = `${rect.width * 100}%`;
@@ -478,7 +491,7 @@ function renderAnnotationsList(items) {
     node.className = `item annotation-item${item.id === activeAnnotationId ? ' active-item' : ''}`;
     node.dataset.annotationId = item.id;
     node.innerHTML = `
-      <strong><span class="color-dot" style="background:${escapeHtml(item.color || '#ffd654')}"></span>${escapeHtml(item.page ? `Page ${item.page}` : 'Annotation')}</strong>
+      <strong><span class="color-dot" style="background:${escapeHtml(item.color || '#ffd654')}"></span>${escapeHtml(item.page ? `Page ${item.page}` : 'Annotation')} · ${escapeHtml(item.kind || 'highlight')}</strong>
       <p>${escapeHtml(item.selectedText || item.note || '')}</p>
       ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ''}
       <div class="annotation-actions">
@@ -494,10 +507,14 @@ function renderAnnotationsList(items) {
 function filterAnnotations(items) {
   const query = annotationSearch.value.trim().toLowerCase();
   const color = annotationColorFilter.value;
+  const kind = annotationKindFilter.value;
 
   return items.filter(item => {
     const matchesColor = !color || (item.color || '#ffd654') === color;
     if (!matchesColor) {
+      return false;
+    }
+    if (kind && (item.kind || 'highlight') !== kind) {
       return false;
     }
     if (!query) {
@@ -540,6 +557,7 @@ function editAnnotation(annotation) {
   selectedText.value = annotation.selectedText || '';
   noteInput.value = annotation.note || '';
   annotationColor.value = annotation.color || '#ffd654';
+  annotationKind.value = annotation.kind || 'highlight';
   latestSelectionRects = annotation.rects || [];
   if (annotation.page) {
     pageInput.value = String(annotation.page);

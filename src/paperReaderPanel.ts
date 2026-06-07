@@ -343,6 +343,11 @@ export class PaperReaderPanel {
           <option value="#ffaaa5">Red</option>
           <option value="#d7b8ff">Purple</option>
         </select>
+        <label for="annotationKind">Annotation style</label>
+        <select id="annotationKind">
+          <option value="highlight">Highlight</option>
+          <option value="underline">Underline</option>
+        </select>
         <textarea id="noteInput" rows="4" placeholder="Your annotation"></textarea>
         <div class="actions">
           <button id="saveAnnotation">Save annotation</button>
@@ -370,6 +375,11 @@ export class PaperReaderPanel {
           <option value="#a6e99f">Green</option>
           <option value="#ffaaa5">Red</option>
           <option value="#d7b8ff">Purple</option>
+        </select>
+        <select id="annotationKindFilter">
+          <option value="">All styles</option>
+          <option value="highlight">Highlight</option>
+          <option value="underline">Underline</option>
         </select>
         <div class="actions">
           <button id="exportAnnotations">Export Markdown</button>

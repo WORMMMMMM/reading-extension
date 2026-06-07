@@ -16,11 +16,11 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
 - `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
-- `src/readerStorage.ts`: Sidecar JSON persistence and export logic. It stores colored annotations, exports annotation Markdown, exports highlighted PDF copies with native note comments, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
+- `src/readerStorage.ts`: Sidecar JSON persistence and export logic. It stores colored highlight/underline annotations, exports annotation Markdown, exports highlighted PDF copies with native note comments, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to render pages, captures text selection, tracks current page, draws annotation highlights, supports annotation search/filter/color/edit/delete/jump/export interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
+- `media/reader.js`: Browser-side reader app. It uses pdf.js to render pages, captures text selection, tracks current page, draws annotation highlights/underlines, supports annotation search/filter/style/color/edit/delete/jump/export interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
 - `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
 
 ## Build Output
@@ -61,7 +61,7 @@ VS Code command
 
 - The reader currently renders all PDF pages sequentially. This is simple and useful for the MVP; large PDFs may need virtualized page rendering later.
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
-- Annotation colors are stored per annotation as hex strings; older annotations without a color fall back to yellow.
+- Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
 - Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.

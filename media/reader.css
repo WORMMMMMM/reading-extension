@@ -137,10 +137,19 @@ textarea {
 .highlight {
   position: absolute;
   border-radius: 2px;
-  background: var(--highlight);
   mix-blend-mode: multiply;
   pointer-events: auto;
   cursor: pointer;
+}
+
+.highlight-mark {
+  background: var(--highlight);
+}
+
+.underline-mark {
+  border-bottom: 3px solid currentColor;
+  background: transparent !important;
+  color: rgb(255, 214, 84);
 }
 
 .active-highlight {

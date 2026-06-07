@@ -7,11 +7,14 @@ export interface AnnotationRecord {
   page?: number;
   rects?: AnnotationRect[];
   color?: string;
+  kind?: AnnotationKind;
   selectedText: string;
   note: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type AnnotationKind = 'highlight' | 'underline';
 
 export interface AnnotationRect {
   page: number;
@@ -77,6 +80,7 @@ export class ReaderStorage {
     annotations.unshift({
       ...input,
       color: input.color ?? '#ffd654',
+      kind: input.kind ?? 'highlight',
       id: cryptoRandomId(),
       createdAt: now,
       updatedAt: now
@@ -133,15 +137,32 @@ export class ReaderStorage {
         }
 
         const { width, height } = page.getSize();
-        page.drawRectangle({
-          x: rect.x * width,
-          y: (1 - rect.y - rect.height) * height,
-          width: rect.width * width,
-          height: rect.height * height,
-          color: rgb(color.r, color.g, color.b),
-          opacity: 0.35,
-          borderOpacity: 0
-        });
+        const x = rect.x * width;
+        const y = (1 - rect.y - rect.height) * height;
+        const rectWidth = rect.width * width;
+        const rectHeight = rect.height * height;
+
+        if ((annotation.kind ?? 'highlight') === 'underline') {
+          page.drawRectangle({
+            x,
+            y: y + Math.max(1, rectHeight * 0.08),
+            width: rectWidth,
+            height: Math.max(1.25, rectHeight * 0.08),
+            color: rgb(color.r, color.g, color.b),
+            opacity: 0.9,
+            borderOpacity: 0
+          });
+        } else {
+          page.drawRectangle({
+            x,
+            y,
+            width: rectWidth,
+            height: rectHeight,
+            color: rgb(color.r, color.g, color.b),
+            opacity: 0.35,
+            borderOpacity: 0
+          });
+        }
       }
 
       if (annotation.note) {
@@ -240,7 +261,7 @@ export class ReaderStorage {
     }
 
     for (const annotation of annotations) {
-      lines.push(`## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.color ?? '#ffd654'})`);
+      lines.push(`## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.kind ?? 'highlight'}, ${annotation.color ?? '#ffd654'})`);
       lines.push('');
       if (annotation.selectedText) {
         lines.push('> ' + annotation.selectedText.replace(/\n/g, '\n> '));
