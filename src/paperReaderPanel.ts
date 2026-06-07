@@ -18,6 +18,7 @@ type ReaderMessage =
       };
     }
   | { type: 'deleteAnnotation'; payload: { id: string } }
+  | { type: 'exportAnnotations' }
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
   | { type: 'saveProgress'; payload: ProgressRecord }
@@ -96,6 +97,9 @@ export class PaperReaderPanel {
       case 'deleteAnnotation':
         await this.storage.deleteAnnotation(message.payload.id);
         await this.postState();
+        break;
+      case 'exportAnnotations':
+        await this.exportAnnotations();
         break;
       case 'saveWord':
         await this.storage.addWord(message.payload);
@@ -219,6 +223,27 @@ export class PaperReaderPanel {
     });
   }
 
+  private async exportAnnotations() {
+    try {
+      const uri = await this.storage.exportAnnotationsMarkdown();
+      await this.panel.webview.postMessage({
+        type: 'exportResult',
+        payload: {
+          path: uri.fsPath
+        }
+      });
+      vscode.window.showInformationMessage(`Annotations exported: ${uri.fsPath}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.panel.webview.postMessage({
+        type: 'exportResult',
+        payload: {
+          error: message
+        }
+      });
+    }
+  }
+
   private async getHtml() {
     const webview = this.panel.webview;
     const scriptUri = webview.asWebviewUri(
@@ -312,6 +337,17 @@ export class PaperReaderPanel {
       </section>
       <section class="tool-block list-block">
         <h2>Saved annotations</h2>
+        <input id="annotationSearch" type="search" placeholder="Search annotations">
+        <select id="annotationColorFilter">
+          <option value="">All colors</option>
+          <option value="#ffd654">Yellow</option>
+          <option value="#8fd3ff">Blue</option>
+          <option value="#a6e99f">Green</option>
+          <option value="#ffaaa5">Red</option>
+          <option value="#d7b8ff">Purple</option>
+        </select>
+        <button id="exportAnnotations">Export Markdown</button>
+        <div id="annotationExportStatus" class="status-line"></div>
         <div id="annotationsList" class="list"></div>
       </section>
       <section class="tool-block list-block">

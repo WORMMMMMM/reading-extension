@@ -280,6 +280,13 @@ button:hover {
   padding: 6px 8px;
 }
 
+.status-line {
+  min-height: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .edit-status {
   border-left: 3px solid var(--vscode-focusBorder);
   padding: 6px 8px;

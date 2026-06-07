@@ -107,6 +107,14 @@ export class ReaderStorage {
     );
   }
 
+  async exportAnnotationsMarkdown() {
+    const annotations = await this.readAnnotations();
+    const markdown = this.formatAnnotationsMarkdown(annotations);
+    const uri = this.fileUri('annotations.md');
+    await this.writeText(uri, markdown);
+    return uri;
+  }
+
   async addWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {
     const now = new Date().toISOString();
     const words = await this.readWords();
@@ -151,8 +159,10 @@ export class ReaderStorage {
     });
   }
 
-  private fileUri(kind: 'annotations' | 'wordbook' | 'progress') {
-    return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.${kind}.json`);
+  private fileUri(kind: 'annotations' | 'annotations.md' | 'wordbook' | 'progress') {
+    const extension = kind === 'annotations.md' ? 'md' : 'json';
+    const stem = kind === 'annotations.md' ? 'annotations' : kind;
+    return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.${stem}.${extension}`);
   }
 
   private async readJson<T>(uri: vscode.Uri, fallback: T): Promise<T> {
@@ -168,6 +178,43 @@ export class ReaderStorage {
     await this.ensureStorageDir();
     const bytes = Buffer.from(JSON.stringify(value, null, 2), 'utf8');
     await vscode.workspace.fs.writeFile(uri, bytes);
+  }
+
+  private async writeText(uri: vscode.Uri, value: string) {
+    await this.ensureStorageDir();
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(value, 'utf8'));
+  }
+
+  private formatAnnotationsMarkdown(annotations: AnnotationRecord[]) {
+    const lines = [
+      `# Annotations for ${this.baseName}`,
+      '',
+      `Exported at ${new Date().toISOString()}`,
+      ''
+    ];
+
+    if (!annotations.length) {
+      lines.push('No annotations saved yet.', '');
+      return lines.join('\n');
+    }
+
+    for (const annotation of annotations) {
+      lines.push(`## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.color ?? '#ffd654'})`);
+      lines.push('');
+      if (annotation.selectedText) {
+        lines.push('> ' + annotation.selectedText.replace(/\n/g, '\n> '));
+        lines.push('');
+      }
+      if (annotation.note) {
+        lines.push(annotation.note);
+        lines.push('');
+      }
+      lines.push(`- Created: ${annotation.createdAt}`);
+      lines.push(`- Updated: ${annotation.updatedAt}`);
+      lines.push('');
+    }
+
+    return lines.join('\n');
   }
 }
 

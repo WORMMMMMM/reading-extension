@@ -16,11 +16,11 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
 - `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
-- `src/readerStorage.ts`: Sidecar JSON persistence. It stores colored annotations, vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
+- `src/readerStorage.ts`: Sidecar JSON persistence. It stores colored annotations, exports annotation Markdown, vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to render pages, captures text selection, tracks current page, draws annotation highlights, supports annotation color/edit/delete/jump interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
+- `media/reader.js`: Browser-side reader app. It uses pdf.js to render pages, captures text selection, tracks current page, draws annotation highlights, supports annotation search/filter/color/edit/delete/jump/export interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
 - `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
 
 ## Build Output
@@ -34,6 +34,7 @@ For a PDF named `paper.pdf`, runtime data is written next to the PDF:
 ```text
 .reading-extension/
   paper.pdf.annotations.json
+  paper.pdf.annotations.md
   paper.pdf.wordbook.json
   paper.pdf.progress.json
 ```

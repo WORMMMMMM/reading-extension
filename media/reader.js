@@ -17,6 +17,9 @@ const wordInput = document.getElementById('wordInput');
 const translationInput = document.getElementById('translationInput');
 const translationOutput = document.getElementById('translationOutput');
 const wordNoteInput = document.getElementById('wordNoteInput');
+const annotationSearch = document.getElementById('annotationSearch');
+const annotationColorFilter = document.getElementById('annotationColorFilter');
+const annotationExportStatus = document.getElementById('annotationExportStatus');
 const annotationsList = document.getElementById('annotationsList');
 const dueWordsList = document.getElementById('dueWordsList');
 const wordsList = document.getElementById('wordsList');
@@ -147,6 +150,10 @@ function bindUi() {
       showTranslationResult(message.payload);
       return;
     }
+    if (message.type === 'exportResult') {
+      showExportResult(message.payload);
+      return;
+    }
     if (message.type !== 'state') {
       return;
     }
@@ -171,6 +178,19 @@ function bindUi() {
         remembered: button.dataset.review === 'remembered'
       }
     });
+  });
+
+  annotationSearch.addEventListener('input', () => {
+    renderAnnotationsList(state.annotations || []);
+  });
+
+  annotationColorFilter.addEventListener('change', () => {
+    renderAnnotationsList(state.annotations || []);
+  });
+
+  document.getElementById('exportAnnotations').addEventListener('click', () => {
+    annotationExportStatus.textContent = 'Exporting annotations...';
+    vscode.postMessage({ type: 'exportAnnotations' });
   });
 
   annotationsList.addEventListener('click', event => {
@@ -441,13 +461,14 @@ function readPage() {
 }
 
 function renderAnnotationsList(items) {
+  const filteredItems = filterAnnotations(items);
   annotationsList.innerHTML = '';
-  if (!items.length) {
+  if (!filteredItems.length) {
     annotationsList.appendChild(emptyItem('No annotations saved yet.'));
     return;
   }
 
-  for (const item of items.slice(0, 20)) {
+  for (const item of filteredItems.slice(0, 50)) {
     const node = document.createElement('article');
     node.className = `item annotation-item${item.id === activeAnnotationId ? ' active-item' : ''}`;
     node.dataset.annotationId = item.id;
@@ -463,6 +484,28 @@ function renderAnnotationsList(items) {
     `;
     annotationsList.appendChild(node);
   }
+}
+
+function filterAnnotations(items) {
+  const query = annotationSearch.value.trim().toLowerCase();
+  const color = annotationColorFilter.value;
+
+  return items.filter(item => {
+    const matchesColor = !color || (item.color || '#ffd654') === color;
+    if (!matchesColor) {
+      return false;
+    }
+    if (!query) {
+      return true;
+    }
+
+    const haystack = [
+      item.selectedText,
+      item.note,
+      item.page ? `page ${item.page}` : ''
+    ].join('\n').toLowerCase();
+    return haystack.includes(query);
+  });
 }
 
 function focusAnnotation(annotation, options = {}) {
@@ -598,6 +641,15 @@ function showTranslationResult(payload) {
   if (!translationInput.value.trim() && payload.translatedText) {
     translationInput.value = payload.translatedText;
   }
+}
+
+function showExportResult(payload) {
+  if (payload.error) {
+    annotationExportStatus.textContent = `Export failed: ${payload.error}`;
+    return;
+  }
+
+  annotationExportStatus.textContent = `Exported: ${payload.path}`;
 }
 
 function isDueForReview(item) {
