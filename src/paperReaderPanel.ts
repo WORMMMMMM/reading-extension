@@ -11,8 +11,10 @@ type ReaderMessage =
   | { type: 'ready' }
   | { type: 'saveAnnotation'; payload: Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
+  | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
   | { type: 'saveProgress'; payload: ProgressRecord }
-  | { type: 'copyPrompt'; payload: { text: string } };
+  | { type: 'copyPrompt'; payload: { text: string } }
+  | { type: 'translate'; payload: { text: string } };
 
 export class PaperReaderPanel {
   private static currentPanel: PaperReaderPanel | undefined;
@@ -83,11 +85,18 @@ export class PaperReaderPanel {
         await this.storage.addWord(message.payload);
         await this.postState();
         break;
+      case 'reviewWord':
+        await this.storage.updateWordReview(message.payload.id, message.payload.remembered);
+        await this.postState();
+        break;
       case 'saveProgress':
         await this.storage.saveProgress(message.payload);
         break;
       case 'copyPrompt':
         await this.copyPrompt(message.payload.text);
+        break;
+      case 'translate':
+        await this.translate(message.payload.text);
         break;
     }
   }
@@ -117,6 +126,81 @@ export class PaperReaderPanel {
     const prompt = (template || '请翻译并解释下面这段论文内容：\n\n{text}').replace('{text}', text);
     await vscode.env.clipboard.writeText(prompt);
     vscode.window.showInformationMessage('Translation prompt copied for ChatGPT.');
+  }
+
+  private async translate(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      await this.postTranslationResult('', 'Select or paste text before translating.');
+      return;
+    }
+
+    try {
+      const translatedText = await this.translateWithLibreTranslate(trimmed);
+      await this.postTranslationResult(translatedText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.postTranslationResult('', message);
+    }
+  }
+
+  private async translateWithLibreTranslate(text: string) {
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const endpoint = config.get<string>('libreTranslateEndpoint') || 'http://localhost:5000/translate';
+    const source = config.get<string>('translationSource') || 'auto';
+    const target = config.get<string>('translationTarget') || 'zh';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          q: text,
+          source,
+          target,
+          format: 'text'
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`LibreTranslate returned HTTP ${response.status}.`);
+      }
+
+      const data = await response.json() as { translatedText?: string; error?: string };
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      if (!data.translatedText) {
+        throw new Error('LibreTranslate response did not include translatedText.');
+      }
+
+      return data.translatedText;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('LibreTranslate request timed out. Is the local server running?');
+      }
+      if (error instanceof TypeError) {
+        throw new Error('Could not reach LibreTranslate. Start the local server or change readingExtension.libreTranslateEndpoint.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async postTranslationResult(translatedText: string, error?: string) {
+    await this.panel.webview.postMessage({
+      type: 'translationResult',
+      payload: {
+        translatedText,
+        error
+      }
+    });
   }
 
   private async getHtml() {
@@ -177,8 +261,10 @@ export class PaperReaderPanel {
         <label for="selectedText">Selected text</label>
         <textarea id="selectedText" rows="6" placeholder="Paste selected paper text here for translation, annotation, or vocabulary capture."></textarea>
         <div class="actions">
+          <button id="translateLocal">Translate locally</button>
           <button id="copyPrompt">Copy ChatGPT prompt</button>
         </div>
+        <textarea id="translationOutput" rows="5" placeholder="Local translation will appear here."></textarea>
       </section>
       <section class="tool-block">
         <h2>Annotation</h2>
@@ -191,6 +277,10 @@ export class PaperReaderPanel {
         <input id="translationInput" type="text" placeholder="Translation">
         <textarea id="wordNoteInput" rows="3" placeholder="Definition, memory note, or context"></textarea>
         <button id="saveWord">Save word</button>
+      </section>
+      <section class="tool-block list-block">
+        <h2>Due today</h2>
+        <div id="dueWordsList" class="list"></div>
       </section>
       <section class="tool-block list-block">
         <h2>Saved annotations</h2>

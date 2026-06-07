@@ -26,8 +26,15 @@ export interface WordRecord {
   sentence?: string;
   note?: string;
   page?: number;
+  review?: WordReview;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WordReview {
+  level: number;
+  nextReviewAt: string;
+  lastReviewedAt?: string;
 }
 
 export interface ProgressRecord {
@@ -80,9 +87,34 @@ export class ReaderStorage {
     words.unshift({
       ...input,
       id: cryptoRandomId(),
+      review: input.review ?? {
+        level: 0,
+        nextReviewAt: startOfTodayIso()
+      },
       createdAt: now,
       updatedAt: now
     });
+    await this.writeJson(this.fileUri('wordbook'), words);
+  }
+
+  async updateWordReview(id: string, remembered: boolean) {
+    const words = await this.readWords();
+    const word = words.find(item => item.id === id);
+    if (!word) {
+      return;
+    }
+
+    const currentLevel = word.review?.level ?? 0;
+    const nextLevel = remembered ? Math.min(currentLevel + 1, reviewIntervalsDays.length - 1) : 0;
+    const now = new Date();
+
+    word.review = {
+      level: nextLevel,
+      lastReviewedAt: now.toISOString(),
+      nextReviewAt: addDaysIso(now, remembered ? reviewIntervalsDays[nextLevel] : 1)
+    };
+    word.updatedAt = now.toISOString();
+
     await this.writeJson(this.fileUri('wordbook'), words);
   }
 
@@ -115,4 +147,19 @@ export class ReaderStorage {
 
 function cryptoRandomId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const reviewIntervalsDays = [0, 1, 3, 7, 14, 30];
+
+function startOfTodayIso() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
+function addDaysIso(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  next.setHours(0, 0, 0, 0);
+  return next.toISOString();
 }

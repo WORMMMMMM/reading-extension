@@ -216,6 +216,7 @@ button:hover {
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -241,6 +242,21 @@ button:hover {
   line-height: 1.45;
 }
 
+.review-item {
+  display: grid;
+  gap: 8px;
+}
+
+.review-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.review-actions button {
+  flex: 1;
+  padding: 6px 8px;
+}
+
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: 1fr;
@@ -256,4 +272,3 @@ button:hover {
     height: auto;
   }
 }
-

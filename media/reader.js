@@ -11,8 +11,10 @@ const pageTotal = document.getElementById('pageTotal');
 const noteInput = document.getElementById('noteInput');
 const wordInput = document.getElementById('wordInput');
 const translationInput = document.getElementById('translationInput');
+const translationOutput = document.getElementById('translationOutput');
 const wordNoteInput = document.getElementById('wordNoteInput');
 const annotationsList = document.getElementById('annotationsList');
+const dueWordsList = document.getElementById('dueWordsList');
 const wordsList = document.getElementById('wordsList');
 const readerStatus = document.getElementById('readerStatus');
 const zoomValue = document.getElementById('zoomValue');
@@ -30,6 +32,16 @@ loadPdf();
 vscode.postMessage({ type: 'ready' });
 
 function bindUi() {
+  document.getElementById('translateLocal').addEventListener('click', () => {
+    const text = selectedText.value.trim();
+    if (!text) {
+      selectedText.focus();
+      return;
+    }
+    translationOutput.value = 'Translating with local LibreTranslate...';
+    vscode.postMessage({ type: 'translate', payload: { text } });
+  });
+
   document.getElementById('copyPrompt').addEventListener('click', () => {
     const text = selectedText.value.trim();
     if (!text) {
@@ -107,15 +119,34 @@ function bindUi() {
 
   window.addEventListener('message', event => {
     const message = event.data;
+    if (message.type === 'translationResult') {
+      showTranslationResult(message.payload);
+      return;
+    }
     if (message.type !== 'state') {
       return;
     }
 
     state = message.payload;
     renderAnnotationsList(state.annotations || []);
+    renderDueWords(state.words || []);
     renderWords(state.words || []);
     restoreProgress(state.progress?.page);
     renderAnnotationOverlays();
+  });
+
+  dueWordsList.addEventListener('click', event => {
+    const button = event.target.closest('button[data-review]');
+    if (!button) {
+      return;
+    }
+    vscode.postMessage({
+      type: 'reviewWord',
+      payload: {
+        id: button.dataset.wordId,
+        remembered: button.dataset.review === 'remembered'
+      }
+    });
   });
 }
 
@@ -374,6 +405,29 @@ function renderAnnotationsList(items) {
   }
 }
 
+function renderDueWords(items) {
+  const dueItems = items.filter(isDueForReview);
+  dueWordsList.innerHTML = '';
+  if (!dueItems.length) {
+    dueWordsList.appendChild(emptyItem('No words due today.'));
+    return;
+  }
+
+  for (const item of dueItems.slice(0, 8)) {
+    const node = document.createElement('article');
+    node.className = 'item review-item';
+    node.innerHTML = `
+      <strong>${escapeHtml(item.word)}${item.translation ? ` - ${escapeHtml(item.translation)}` : ''}</strong>
+      <p>${escapeHtml(item.sentence || item.note || '')}</p>
+      <div class="review-actions">
+        <button data-review="again" data-word-id="${escapeHtml(item.id)}">Again</button>
+        <button data-review="remembered" data-word-id="${escapeHtml(item.id)}">Remembered</button>
+      </div>
+    `;
+    dueWordsList.appendChild(node);
+  }
+}
+
 function renderWords(items) {
   wordsList.innerHTML = '';
   if (!items.length) {
@@ -382,14 +436,45 @@ function renderWords(items) {
   }
 
   for (const item of items.slice(0, 20)) {
+    const review = item.review || {};
     const node = document.createElement('article');
     node.className = 'item';
     node.innerHTML = `
       <strong>${escapeHtml(item.word)}${item.translation ? ` - ${escapeHtml(item.translation)}` : ''}</strong>
       <p>${escapeHtml(item.note || item.sentence || '')}</p>
+      <p>${escapeHtml(formatReviewStatus(review))}</p>
     `;
     wordsList.appendChild(node);
   }
+}
+
+function showTranslationResult(payload) {
+  if (payload.error) {
+    translationOutput.value = `Local translation failed: ${payload.error}`;
+    return;
+  }
+  translationOutput.value = payload.translatedText || '';
+  if (!translationInput.value.trim() && payload.translatedText) {
+    translationInput.value = payload.translatedText;
+  }
+}
+
+function isDueForReview(item) {
+  const nextReviewAt = item.review?.nextReviewAt;
+  if (!nextReviewAt) {
+    return true;
+  }
+  return new Date(nextReviewAt).getTime() <= Date.now();
+}
+
+function formatReviewStatus(review) {
+  if (!review.nextReviewAt) {
+    return 'Review: due now';
+  }
+
+  const date = new Date(review.nextReviewAt);
+  const label = Number.isNaN(date.getTime()) ? review.nextReviewAt : date.toLocaleDateString();
+  return `Review level ${review.level || 0}, next: ${label}`;
 }
 
 function emptyItem(text) {

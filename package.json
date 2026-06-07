@@ -32,7 +32,17 @@
         "readingExtension.libreTranslateEndpoint": {
           "type": "string",
           "default": "http://localhost:5000/translate",
-          "description": "Optional local LibreTranslate endpoint for future in-panel translation."
+          "description": "Local LibreTranslate endpoint used by the in-panel translation button."
+        },
+        "readingExtension.translationSource": {
+          "type": "string",
+          "default": "auto",
+          "description": "Source language code sent to LibreTranslate."
+        },
+        "readingExtension.translationTarget": {
+          "type": "string",
+          "default": "zh",
+          "description": "Target language code sent to LibreTranslate."
         }
       }
     }
