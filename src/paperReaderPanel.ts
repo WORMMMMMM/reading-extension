@@ -18,7 +18,7 @@ export class PaperReaderPanel {
   private static currentPanel: PaperReaderPanel | undefined;
 
   private readonly panel: vscode.WebviewPanel;
-  private readonly storage: ReaderStorage;
+  private storage: ReaderStorage;
   private disposables: vscode.Disposable[] = [];
 
   static createOrShow(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
@@ -64,6 +64,7 @@ export class PaperReaderPanel {
 
   private async update(pdfUri: vscode.Uri) {
     this.pdfUri = pdfUri;
+    this.storage = new ReaderStorage(pdfUri);
     this.panel.title = `Reader: ${path.basename(pdfUri.fsPath)}`;
     await this.storage.ensureStorageDir();
     this.panel.webview.html = await this.getHtml();
@@ -126,14 +127,25 @@ export class PaperReaderPanel {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'media', 'reader.css')
     );
+    const pdfJsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'build', 'pdf.mjs')
+    );
+    const pdfWorkerUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.mjs')
+    );
     const pdfWebviewUri = webview.asWebviewUri(this.pdfUri);
     const nonce = getNonce();
+    const readerConfig = JSON.stringify({
+      pdfUrl: pdfWebviewUri.toString(),
+      pdfJsUrl: pdfJsUri.toString(),
+      pdfWorkerUrl: pdfWorkerUri.toString()
+    });
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src ${webview.cspSource}; img-src ${webview.cspSource} data:; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}' ${webview.cspSource}; worker-src ${webview.cspSource} blob:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="${styleUri}" rel="stylesheet">
   <title>Reading Extension</title>
@@ -141,7 +153,20 @@ export class PaperReaderPanel {
 <body>
   <main class="shell">
     <section class="reader">
-      <iframe title="PDF preview" src="${pdfWebviewUri}"></iframe>
+      <div class="reader-toolbar">
+        <button id="prevPage" title="Previous page">Prev</button>
+        <label class="page-jump">
+          <span>Page</span>
+          <input id="pageInput" type="number" min="1" value="1">
+          <span id="pageTotal">/ -</span>
+        </label>
+        <button id="nextPage" title="Next page">Next</button>
+        <button id="zoomOut" title="Zoom out">-</button>
+        <span id="zoomValue">100%</span>
+        <button id="zoomIn" title="Zoom in">+</button>
+        <span id="readerStatus" class="reader-status">Loading PDF...</span>
+      </div>
+      <div id="pdfViewer" class="pdf-viewer" aria-label="PDF pages"></div>
     </section>
     <aside class="side-panel">
       <header>
@@ -157,7 +182,6 @@ export class PaperReaderPanel {
       </section>
       <section class="tool-block">
         <h2>Annotation</h2>
-        <input id="pageInput" type="number" min="1" placeholder="Page">
         <textarea id="noteInput" rows="4" placeholder="Your annotation"></textarea>
         <button id="saveAnnotation">Save annotation</button>
       </section>
@@ -178,7 +202,8 @@ export class PaperReaderPanel {
       </section>
     </aside>
   </main>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
+  <script nonce="${nonce}">window.readerConfig = ${readerConfig};</script>
+  <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
@@ -209,4 +234,3 @@ function escapeHtml(value: string) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
-

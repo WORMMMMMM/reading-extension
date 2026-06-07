@@ -4,10 +4,19 @@ import * as vscode from 'vscode';
 export interface AnnotationRecord {
   id: string;
   page?: number;
+  rects?: AnnotationRect[];
   selectedText: string;
   note: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AnnotationRect {
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface WordRecord {
@@ -107,4 +116,3 @@ export class ReaderStorage {
 function cryptoRandomId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
-
