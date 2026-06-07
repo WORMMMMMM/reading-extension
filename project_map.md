@@ -16,7 +16,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
 - `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
-- `src/readerStorage.ts`: Sidecar JSON persistence and export logic. It stores colored annotations, exports annotation Markdown and highlighted PDF copies, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
+- `src/readerStorage.ts`: Sidecar JSON persistence and export logic. It stores colored annotations, exports annotation Markdown, exports highlighted PDF copies with native note comments, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
 
 ## Webview Assets
 
@@ -62,7 +62,7 @@ VS Code command
 - The reader currently renders all PDF pages sequentially. This is simple and useful for the MVP; large PDFs may need virtualized page rendering later.
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
 - Annotation colors are stored per annotation as hex strings; older annotations without a color fall back to yellow.
-- Annotated PDF export currently draws visible highlight rectangles. Native PDF comment objects for note text are still a future step.
+- Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
 - Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
 - Vocabulary review uses a deliberately small interval list for now: due immediately, then 1, 3, 7, 14, and 30 days.

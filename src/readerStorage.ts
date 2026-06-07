@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFArray, PDFDocument, PDFHexString, PDFName, PDFPage, PDFString, rgb } from 'pdf-lib';
 
 export interface AnnotationRecord {
   id: string;
@@ -143,6 +143,10 @@ export class ReaderStorage {
           borderOpacity: 0
         });
       }
+
+      if (annotation.note) {
+        this.addNativeTextAnnotation(pdf, pages, annotation, color);
+      }
     }
 
     const exportedBytes = await pdf.save();
@@ -253,6 +257,55 @@ export class ReaderStorage {
 
     return lines.join('\n');
   }
+
+  private addNativeTextAnnotation(
+    pdf: PDFDocument,
+    pages: PDFPage[],
+    annotation: AnnotationRecord,
+    color: { r: number; g: number; b: number }
+  ) {
+    const firstRect = annotation.rects?.[0];
+    const pageIndex = firstRect ? firstRect.page - 1 : (annotation.page ?? 1) - 1;
+    const page = pages[pageIndex];
+    if (!page) {
+      return;
+    }
+
+    const { width, height } = page.getSize();
+    const iconSize = 18;
+    const x = firstRect ? firstRect.x * width : width - 42;
+    const y = firstRect ? (1 - firstRect.y) * height + 4 : height - 42;
+    const iconRect = [
+      clampNumber(x, 0, width - iconSize),
+      clampNumber(y, 0, height - iconSize),
+      clampNumber(x + iconSize, iconSize, width),
+      clampNumber(y + iconSize, iconSize, height)
+    ];
+    const contents = [
+      annotation.note,
+      annotation.selectedText ? `\n\nSelected text:\n${annotation.selectedText}` : ''
+    ].join('');
+    const annot = pdf.context.obj({
+      Type: PDFName.of('Annot'),
+      Subtype: PDFName.of('Text'),
+      Rect: iconRect,
+      Contents: PDFHexString.fromText(contents),
+      T: PDFHexString.fromText('Reading Extension'),
+      Name: PDFName.of('Comment'),
+      C: [color.r, color.g, color.b],
+      M: PDFString.fromDate(new Date(annotation.updatedAt || annotation.createdAt)),
+      Open: false,
+      F: 4
+    });
+    const annotRef = pdf.context.register(annot);
+    const annots = page.node.Annots() ?? pdf.context.obj([]) as PDFArray;
+
+    if (!page.node.Annots()) {
+      page.node.set(PDFName.of('Annots'), annots);
+    }
+
+    annots.push(annotRef);
+  }
 }
 
 function cryptoRandomId() {
@@ -285,4 +338,8 @@ function hexToRgb(hex: string) {
     g: parseInt(normalized.slice(2, 4), 16) / 255,
     b: parseInt(normalized.slice(4, 6), 16) / 255
   };
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
