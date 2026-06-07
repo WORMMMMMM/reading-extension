@@ -17,8 +17,8 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
 - `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
-- `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags.
-- `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats annotation Markdown, and applies visible highlight/underline marks plus native note comments to PDF bytes.
+- `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags and selection context.
+- `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes.
 - `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
 
 ## Webview Assets
@@ -64,6 +64,7 @@ VS Code command
 
 - The reader creates page shells for the whole document, then lazily renders canvas/text content near the viewport with a bounded render queue. Full virtualization can still improve very large documents later.
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
+- Captured PDF selections can store short before/after context strings for later review.
 - Annotation tags are stored as optional string arrays and included in Markdown/PDF note exports.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotation lists can be sorted by document position, creation time, or last edit; Markdown export uses document position.

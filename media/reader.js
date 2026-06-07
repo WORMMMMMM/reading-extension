@@ -37,6 +37,7 @@ let scale = 1.25;
 let currentPage = 1;
 let state = { annotations: [], words: [], progress: {} };
 let latestSelectionRects = [];
+let latestSelectionContext = {};
 let pageObserver;
 let renderObserver;
 let restoredProgress = false;
@@ -151,6 +152,7 @@ function bindUi() {
   selectedText.addEventListener('input', () => {
     if (!editingAnnotationId) {
       latestSelectionRects = [];
+      latestSelectionContext = {};
     }
     scheduleEditedAnnotationAutoSave();
   });
@@ -429,6 +431,7 @@ function captureSelection() {
 
   selectedText.value = text;
   latestSelectionRects = getSelectionRects(selection);
+  latestSelectionContext = getSelectionContext(text, latestSelectionRects[0]?.page);
   const firstPage = latestSelectionRects[0]?.page;
   if (firstPage) {
     setCurrentPage(firstPage);
@@ -460,6 +463,35 @@ function getSelectionRects(selection) {
     }
   }
   return rects;
+}
+
+function getSelectionContext(selectedValue, pageNumber) {
+  if (!pageNumber) {
+    return {};
+  }
+
+  const pageEl = document.querySelector(`.pdf-page[data-page="${pageNumber}"]`);
+  const spans = [...(pageEl?.querySelectorAll('.text-layer span') || [])];
+  const pageText = normalizeContextText(spans.map(span => span.textContent || '').join(' '));
+  const selected = normalizeContextText(selectedValue);
+
+  if (!pageText || !selected) {
+    return {};
+  }
+
+  const index = pageText.toLowerCase().indexOf(selected.toLowerCase());
+  if (index < 0) {
+    return {};
+  }
+
+  const contextSize = 140;
+  const before = pageText.slice(Math.max(0, index - contextSize), index).trim();
+  const after = pageText.slice(index + selected.length, index + selected.length + contextSize).trim();
+  return { before, after };
+}
+
+function normalizeContextText(value) {
+  return String(value).replace(/\s+/g, ' ').trim();
 }
 
 function elementFromRect(rect) {
@@ -674,6 +706,7 @@ function renderAnnotationsList(items) {
     node.innerHTML = `
       <strong><span class="color-dot" style="background:${escapeHtml(item.color || '#ffd654')}"></span>${escapeHtml(item.page ? `Page ${item.page}` : 'Annotation')} · ${escapeHtml(item.kind || 'highlight')}</strong>
       <p>${escapeHtml(item.selectedText || item.note || '')}</p>
+      ${renderAnnotationContext(item)}
       ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ''}
       ${renderTagChips(item.tags)}
       <div class="annotation-actions">
@@ -710,6 +743,8 @@ function filterAnnotations(items) {
 
     const haystack = [
       item.selectedText,
+      item.contextBefore,
+      item.contextAfter,
       item.note,
       tags.join(' '),
       item.page ? `page ${item.page}` : ''
@@ -809,6 +844,10 @@ function editAnnotation(annotation) {
   annotationColor.value = annotation.color || '#ffd654';
   annotationKind.value = annotation.kind || 'highlight';
   latestSelectionRects = annotation.rects || [];
+  latestSelectionContext = {
+    before: annotation.contextBefore || '',
+    after: annotation.contextAfter || ''
+  };
   if (annotation.page) {
     pageInput.value = String(annotation.page);
   }
@@ -846,6 +885,7 @@ function clearAnnotationEditor() {
   saveAnnotationButton.textContent = 'Save annotation';
   noteInput.value = '';
   annotationTags.value = '';
+  latestSelectionContext = {};
   lastAutoSavedAnnotationSnapshot = '';
 }
 
@@ -856,6 +896,8 @@ function readAnnotationEditorPayload() {
     color: annotationColor.value,
     kind: annotationKind.value,
     tags: normalizeTags(annotationTags.value),
+    contextBefore: latestSelectionContext.before || '',
+    contextAfter: latestSelectionContext.after || '',
     selectedText: selectedText.value.trim(),
     note: noteInput.value.trim()
   };
@@ -933,6 +975,8 @@ function snapshotAnnotationPayload(payload) {
     color: payload.color,
     kind: payload.kind,
     tags: payload.tags || [],
+    contextBefore: payload.contextBefore,
+    contextAfter: payload.contextAfter,
     selectedText: payload.selectedText,
     note: payload.note
   });
@@ -1065,6 +1109,37 @@ function renderTagChips(tags) {
       ${normalizedTags.map(tag => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join('')}
     </div>
   `;
+}
+
+function renderAnnotationContext(annotation) {
+  const before = normalizeContextText(annotation.contextBefore || '');
+  const after = normalizeContextText(annotation.contextAfter || '');
+  if (!before && !after) {
+    return '';
+  }
+
+  return `
+    <p class="annotation-context">
+      ${before ? `<span>${escapeHtml(shortenContext(before, 'start'))}</span>` : ''}
+      <mark>${escapeHtml(shortenContext(annotation.selectedText || 'selection', 'middle'))}</mark>
+      ${after ? `<span>${escapeHtml(shortenContext(after, 'end'))}</span>` : ''}
+    </p>
+  `;
+}
+
+function shortenContext(value, mode) {
+  const normalized = normalizeContextText(value);
+  const limit = mode === 'middle' ? 90 : 120;
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+  if (mode === 'start') {
+    return `...${normalized.slice(-limit)}`;
+  }
+  if (mode === 'end') {
+    return `${normalized.slice(0, limit)}...`;
+  }
+  return `${normalized.slice(0, limit)}...`;
 }
 
 function normalizeTags(value) {

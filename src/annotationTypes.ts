@@ -5,6 +5,8 @@ export interface AnnotationRecord {
   color?: string;
   kind?: AnnotationKind;
   tags?: string[];
+  contextBefore?: string;
+  contextAfter?: string;
   selectedText: string;
   note: string;
   createdAt: string;

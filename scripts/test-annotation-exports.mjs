@@ -29,6 +29,8 @@ const annotations = [
     color: '#ffd654',
     kind: 'highlight',
     tags: ['method', 'important'],
+    contextBefore: 'In the architecture section, the authors argue that',
+    contextAfter: 'when the input grows beyond the training horizon.',
     selectedText: 'Transformer models align tokens across long contexts.',
     note: 'Important architecture claim.',
     createdAt: timestamp,
@@ -65,6 +67,7 @@ assert.match(markdown, /Exported at 2026-01-01T00:00:00\.000Z/);
 assert.match(markdown, /Page 1 \(highlight, #ffd654\)/);
 assert.match(markdown, /> Transformer models align tokens across long contexts\./);
 assert.match(markdown, /Important architecture claim\./);
+assert.match(markdown, /Context: \.\.\.In the architecture section, the authors argue that \[Transformer models align tokens across long contexts\.\] when the input grows beyond the training horizon\.\.\./);
 assert.match(markdown, /- Tags: method, important/);
 assert.match(markdown, /Page 1 \(underline, #8fd3ff\)/);
 assert.match(markdown, /Re-read this page before the group meeting\./);

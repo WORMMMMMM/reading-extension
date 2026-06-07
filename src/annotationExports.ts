@@ -20,6 +20,7 @@ export function formatAnnotationsMarkdown(
 
   for (const annotation of sortAnnotationsByDocumentPosition(annotations)) {
     const tags = normalizeTags(annotation.tags);
+    const context = formatAnnotationContext(annotation);
     lines.push(
       `## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.kind ?? 'highlight'}, ${annotation.color ?? '#ffd654'})`
     );
@@ -30,6 +31,10 @@ export function formatAnnotationsMarkdown(
     }
     if (annotation.note) {
       lines.push(annotation.note);
+      lines.push('');
+    }
+    if (context) {
+      lines.push(`Context: ${context}`);
       lines.push('');
     }
     if (tags.length) {
@@ -91,7 +96,7 @@ export async function applyAnnotationsToPdf(
       }
     }
 
-    if (annotation.note) {
+    if (hasNativeCommentDetails(annotation)) {
       addNativeTextAnnotation(pdf, pages, annotation, color);
     }
   }
@@ -122,10 +127,13 @@ function addNativeTextAnnotation(
     clampNumber(x + iconSize, iconSize, width),
     clampNumber(y + iconSize, iconSize, height)
   ];
+  const tags = normalizeTags(annotation.tags);
+  const context = formatAnnotationContext(annotation);
   const contents = [
     annotation.note,
     annotation.selectedText ? `\n\nSelected text:\n${annotation.selectedText}` : '',
-    normalizeTags(annotation.tags).length ? `\n\nTags: ${normalizeTags(annotation.tags).join(', ')}` : ''
+    context ? `\n\nContext:\n${context}` : '',
+    tags.length ? `\n\nTags: ${tags.join(', ')}` : ''
   ].join('');
   const modifiedAt = parseDateOrNow(annotation.updatedAt || annotation.createdAt);
   const annot = pdf.context.obj({
@@ -209,4 +217,30 @@ function normalizeTags(value: unknown) {
     .map(tag => String(tag).trim().replace(/^#/, '').toLowerCase())
     .filter(Boolean);
   return [...new Set(tags)];
+}
+
+function hasNativeCommentDetails(annotation: AnnotationRecord) {
+  return Boolean(
+    annotation.note ||
+    normalizeTags(annotation.tags).length ||
+    annotation.contextBefore ||
+    annotation.contextAfter
+  );
+}
+
+function formatAnnotationContext(annotation: AnnotationRecord) {
+  const before = normalizeWhitespace(annotation.contextBefore || '');
+  const selectedText = normalizeWhitespace(annotation.selectedText || '');
+  const after = normalizeWhitespace(annotation.contextAfter || '');
+  if (!before && !after) {
+    return '';
+  }
+
+  return [before ? `...${before}` : '', selectedText ? `[${selectedText}]` : '[selection]', after ? `${after}...` : '']
+    .filter(Boolean)
+    .join(' ');
+}
+
+function normalizeWhitespace(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
 }

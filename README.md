@@ -9,12 +9,13 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Capture selected PDF text into the translation and annotation panel.
 - Translate selected text through a local LibreTranslate server.
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.
+- Save surrounding text context for captured PDF selections.
 - Show page-only notes as clickable page markers.
 - Edit, delete, jump to, and reactivate saved annotations.
 - Autosave edits to existing annotation notes, colors, styles, text, and page metadata.
 - Add tags to annotations, then search and filter them by tag.
 - Search, filter, and sort annotations by text, tag, color, style, paper order, creation time, or edit time.
-- Export annotations to Markdown next to the PDF, ordered by paper position and including tags.
+- Export annotations to Markdown next to the PDF, ordered by paper position and including tags/context.
 - Export a highlighted PDF copy with native note comments next to the PDF.
 - Save vocabulary notes automatically to a sidecar JSON file.
 - Review due vocabulary with a simple spaced repetition loop.
