@@ -59,7 +59,7 @@ VS Code command
 
 ## Development Notes
 
-- The reader creates page shells for the whole document, then lazily renders canvas/text content near the viewport. Full virtualization can still improve very large documents later.
+- The reader creates page shells for the whole document, then lazily renders canvas/text content near the viewport with a bounded render queue. Full virtualization can still improve very large documents later.
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.

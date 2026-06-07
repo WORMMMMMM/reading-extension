@@ -41,6 +41,10 @@ let activeAnnotationId;
 let renderGeneration = 0;
 const renderedPages = new Set();
 const renderingPages = new Set();
+const queuedPages = new Set();
+const renderQueue = [];
+const maxConcurrentPageRenders = 2;
+let activeRenderCount = 0;
 
 bindUi();
 loadPdf();
@@ -257,6 +261,8 @@ async function renderPdf() {
   renderGeneration += 1;
   renderedPages.clear();
   renderingPages.clear();
+  queuedPages.clear();
+  renderQueue.length = 0;
   viewer.innerHTML = '';
   zoomValue.textContent = `${Math.round((scale / 1.25) * 100)}%`;
 
@@ -296,7 +302,40 @@ async function createPageShell(pageNumber) {
   viewer.appendChild(pageEl);
 }
 
-async function renderPageContent(pageEl, generation = renderGeneration) {
+function renderPageContent(pageEl, generation = renderGeneration, priority = false) {
+  const pageNumber = Number(pageEl.dataset.page);
+  if (
+    !pageNumber ||
+    renderedPages.has(pageNumber) ||
+    renderingPages.has(pageNumber) ||
+    queuedPages.has(pageNumber)
+  ) {
+    return;
+  }
+
+  queuedPages.add(pageNumber);
+  const item = { pageEl, pageNumber, generation };
+  if (priority) {
+    renderQueue.unshift(item);
+  } else {
+    renderQueue.push(item);
+  }
+  processRenderQueue();
+}
+
+function processRenderQueue() {
+  while (activeRenderCount < maxConcurrentPageRenders && renderQueue.length) {
+    const item = renderQueue.shift();
+    queuedPages.delete(item.pageNumber);
+    activeRenderCount += 1;
+    renderPageContentNow(item.pageEl, item.generation).finally(() => {
+      activeRenderCount -= 1;
+      processRenderQueue();
+    });
+  }
+}
+
+async function renderPageContentNow(pageEl, generation) {
   const pageNumber = Number(pageEl.dataset.page);
   if (!pageNumber || renderedPages.has(pageNumber) || renderingPages.has(pageNumber)) {
     return;
@@ -550,7 +589,7 @@ function goToPage(page, options = {}) {
   const nextPage = clampPage(page);
   const pageEl = document.querySelector(`.pdf-page[data-page="${nextPage}"]`);
   if (pageEl) {
-    renderPageContent(pageEl);
+    renderPageContent(pageEl, renderGeneration, true);
     pageEl.scrollIntoView({
       block: 'start',
       behavior: options.smooth === false ? 'auto' : 'smooth'
