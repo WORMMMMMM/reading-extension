@@ -1,0 +1,50 @@
+{
+  "name": "reading-extension",
+  "displayName": "Reading Extension",
+  "description": "A VS Code paper reader prototype focused on translation, annotations, vocabulary, and automatic local saves.",
+  "version": "0.0.1",
+  "publisher": "ziming",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:readingExtension.openReader"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "readingExtension.openReader",
+        "title": "Reading Extension: Open Paper Reader"
+      }
+    ],
+    "configuration": {
+      "title": "Reading Extension",
+      "properties": {
+        "readingExtension.chatGptPromptTemplate": {
+          "type": "string",
+          "default": "请把下面这段论文内容翻译成中文，并解释关键术语和句子结构：\n\n{text}",
+          "description": "Prompt template used when copying selected text for ChatGPT. Use {text} as the selected text placeholder."
+        },
+        "readingExtension.libreTranslateEndpoint": {
+          "type": "string",
+          "default": "http://localhost:5000/translate",
+          "description": "Optional local LibreTranslate endpoint for future in-panel translation."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.5"
+  }
+}
+

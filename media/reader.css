@@ -1,0 +1,164 @@
+:root {
+  color-scheme: light dark;
+  --panel-bg: var(--vscode-sideBar-background);
+  --border: var(--vscode-panel-border);
+  --muted: var(--vscode-descriptionForeground);
+  --accent: var(--vscode-button-background);
+  --accent-text: var(--vscode-button-foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  min-height: 100vh;
+}
+
+.reader {
+  min-width: 0;
+  border-right: 1px solid var(--border);
+  background: var(--vscode-editor-background);
+}
+
+.reader iframe {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  border: 0;
+}
+
+.side-panel {
+  overflow: auto;
+  height: 100vh;
+  padding: 18px;
+  background: var(--panel-bg);
+}
+
+header {
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+h2 {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.tool-block {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+textarea,
+input {
+  width: 100%;
+  border: 1px solid var(--vscode-input-border, transparent);
+  padding: 8px 9px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  border: 0;
+  padding: 8px 10px;
+  color: var(--accent-text);
+  background: var(--accent);
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.item {
+  border: 1px solid var(--border);
+  padding: 9px;
+  background: var(--vscode-editor-background);
+}
+
+.item strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.item p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .reader {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .reader iframe {
+    height: 55vh;
+  }
+
+  .side-panel {
+    height: auto;
+  }
+}
+
