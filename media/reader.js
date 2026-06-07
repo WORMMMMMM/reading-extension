@@ -10,6 +10,7 @@ const pageInput = document.getElementById('pageInput');
 const pageTotal = document.getElementById('pageTotal');
 const annotationColor = document.getElementById('annotationColor');
 const annotationKind = document.getElementById('annotationKind');
+const annotationTags = document.getElementById('annotationTags');
 const annotationEditStatus = document.getElementById('annotationEditStatus');
 const saveAnnotationButton = document.getElementById('saveAnnotation');
 const cancelAnnotationEditButton = document.getElementById('cancelAnnotationEdit');
@@ -19,6 +20,7 @@ const translationInput = document.getElementById('translationInput');
 const translationOutput = document.getElementById('translationOutput');
 const wordNoteInput = document.getElementById('wordNoteInput');
 const annotationSearch = document.getElementById('annotationSearch');
+const annotationTagFilter = document.getElementById('annotationTagFilter');
 const annotationColorFilter = document.getElementById('annotationColorFilter');
 const annotationKindFilter = document.getElementById('annotationKindFilter');
 const annotationSort = document.getElementById('annotationSort');
@@ -154,6 +156,7 @@ function bindUi() {
   });
 
   noteInput.addEventListener('input', scheduleEditedAnnotationAutoSave);
+  annotationTags.addEventListener('input', scheduleEditedAnnotationAutoSave);
   annotationColor.addEventListener('change', scheduleEditedAnnotationAutoSave);
   annotationKind.addEventListener('change', scheduleEditedAnnotationAutoSave);
 
@@ -196,6 +199,10 @@ function bindUi() {
   });
 
   annotationSearch.addEventListener('input', () => {
+    renderAnnotationsList(state.annotations || []);
+  });
+
+  annotationTagFilter.addEventListener('input', () => {
     renderAnnotationsList(state.annotations || []);
   });
 
@@ -668,6 +675,7 @@ function renderAnnotationsList(items) {
       <strong><span class="color-dot" style="background:${escapeHtml(item.color || '#ffd654')}"></span>${escapeHtml(item.page ? `Page ${item.page}` : 'Annotation')} · ${escapeHtml(item.kind || 'highlight')}</strong>
       <p>${escapeHtml(item.selectedText || item.note || '')}</p>
       ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ''}
+      ${renderTagChips(item.tags)}
       <div class="annotation-actions">
         <button data-annotation-action="jump">Jump</button>
         <button data-annotation-action="edit">Edit</button>
@@ -680,15 +688,20 @@ function renderAnnotationsList(items) {
 
 function filterAnnotations(items) {
   const query = annotationSearch.value.trim().toLowerCase();
+  const tagQuery = normalizeTags(annotationTagFilter.value);
   const color = annotationColorFilter.value;
   const kind = annotationKindFilter.value;
 
   return items.filter(item => {
+    const tags = normalizeTags(item.tags || []);
     const matchesColor = !color || (item.color || '#ffd654') === color;
     if (!matchesColor) {
       return false;
     }
     if (kind && (item.kind || 'highlight') !== kind) {
+      return false;
+    }
+    if (tagQuery.length && !tagQuery.every(tag => tags.includes(tag))) {
       return false;
     }
     if (!query) {
@@ -698,6 +711,7 @@ function filterAnnotations(items) {
     const haystack = [
       item.selectedText,
       item.note,
+      tags.join(' '),
       item.page ? `page ${item.page}` : ''
     ].join('\n').toLowerCase();
     return haystack.includes(query);
@@ -791,6 +805,7 @@ function editAnnotation(annotation) {
   activeAnnotationId = annotation.id;
   selectedText.value = annotation.selectedText || '';
   noteInput.value = annotation.note || '';
+  annotationTags.value = (annotation.tags || []).join(', ');
   annotationColor.value = annotation.color || '#ffd654';
   annotationKind.value = annotation.kind || 'highlight';
   latestSelectionRects = annotation.rects || [];
@@ -830,6 +845,7 @@ function clearAnnotationEditor() {
   cancelAnnotationEditButton.hidden = true;
   saveAnnotationButton.textContent = 'Save annotation';
   noteInput.value = '';
+  annotationTags.value = '';
   lastAutoSavedAnnotationSnapshot = '';
 }
 
@@ -839,6 +855,7 @@ function readAnnotationEditorPayload() {
     rects: latestSelectionRects,
     color: annotationColor.value,
     kind: annotationKind.value,
+    tags: normalizeTags(annotationTags.value),
     selectedText: selectedText.value.trim(),
     note: noteInput.value.trim()
   };
@@ -915,6 +932,7 @@ function snapshotAnnotationPayload(payload) {
     rects: payload.rects || [],
     color: payload.color,
     kind: payload.kind,
+    tags: payload.tags || [],
     selectedText: payload.selectedText,
     note: payload.note
   });
@@ -1034,6 +1052,27 @@ function formatReviewStatus(review) {
   const date = new Date(review.nextReviewAt);
   const label = Number.isNaN(date.getTime()) ? review.nextReviewAt : date.toLocaleDateString();
   return `Review level ${review.level || 0}, next: ${label}`;
+}
+
+function renderTagChips(tags) {
+  const normalizedTags = normalizeTags(tags || []);
+  if (!normalizedTags.length) {
+    return '';
+  }
+
+  return `
+    <div class="annotation-tags">
+      ${normalizedTags.map(tag => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join('')}
+    </div>
+  `;
+}
+
+function normalizeTags(value) {
+  const rawTags = Array.isArray(value) ? value : String(value).split(/[,\s#]+/);
+  const tags = rawTags
+    .map(tag => String(tag).trim().replace(/^#/, '').toLowerCase())
+    .filter(Boolean);
+  return [...new Set(tags)];
 }
 
 function emptyItem(text) {

@@ -28,6 +28,7 @@ const annotations = [
     rects: [{ page: 1, x: 0.1, y: 0.2, width: 0.4, height: 0.05 }],
     color: '#ffd654',
     kind: 'highlight',
+    tags: ['method', 'important'],
     selectedText: 'Transformer models align tokens across long contexts.',
     note: 'Important architecture claim.',
     createdAt: timestamp,
@@ -50,6 +51,7 @@ const annotations = [
     rects: [],
     color: '#b6e388',
     kind: 'highlight',
+    tags: ['todo'],
     selectedText: '',
     note: 'Re-read this page before the group meeting.',
     createdAt: timestamp,
@@ -63,8 +65,10 @@ assert.match(markdown, /Exported at 2026-01-01T00:00:00\.000Z/);
 assert.match(markdown, /Page 1 \(highlight, #ffd654\)/);
 assert.match(markdown, /> Transformer models align tokens across long contexts\./);
 assert.match(markdown, /Important architecture claim\./);
+assert.match(markdown, /- Tags: method, important/);
 assert.match(markdown, /Page 1 \(underline, #8fd3ff\)/);
 assert.match(markdown, /Re-read this page before the group meeting\./);
+assert.match(markdown, /- Tags: todo/);
 assert.ok(
   markdown.indexOf('Transformer models align tokens') < markdown.indexOf('Conclusion caveat'),
   'Markdown export should be ordered by document position'

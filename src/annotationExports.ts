@@ -19,6 +19,7 @@ export function formatAnnotationsMarkdown(
   }
 
   for (const annotation of sortAnnotationsByDocumentPosition(annotations)) {
+    const tags = normalizeTags(annotation.tags);
     lines.push(
       `## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.kind ?? 'highlight'}, ${annotation.color ?? '#ffd654'})`
     );
@@ -30,6 +31,9 @@ export function formatAnnotationsMarkdown(
     if (annotation.note) {
       lines.push(annotation.note);
       lines.push('');
+    }
+    if (tags.length) {
+      lines.push(`- Tags: ${tags.join(', ')}`);
     }
     lines.push(`- Created: ${annotation.createdAt}`);
     lines.push(`- Updated: ${annotation.updatedAt}`);
@@ -120,7 +124,8 @@ function addNativeTextAnnotation(
   ];
   const contents = [
     annotation.note,
-    annotation.selectedText ? `\n\nSelected text:\n${annotation.selectedText}` : ''
+    annotation.selectedText ? `\n\nSelected text:\n${annotation.selectedText}` : '',
+    normalizeTags(annotation.tags).length ? `\n\nTags: ${normalizeTags(annotation.tags).join(', ')}` : ''
   ].join('');
   const modifiedAt = parseDateOrNow(annotation.updatedAt || annotation.createdAt);
   const annot = pdf.context.obj({
@@ -196,4 +201,12 @@ function getAnnotationPosition(annotation: AnnotationRecord) {
 function dateValue(value: string) {
   const parsed = new Date(value).getTime();
   return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function normalizeTags(value: unknown) {
+  const rawTags = Array.isArray(value) ? value : String(value ?? '').split(/[,\s#]+/);
+  const tags = rawTags
+    .map(tag => String(tag).trim().replace(/^#/, '').toLowerCase())
+    .filter(Boolean);
+  return [...new Set(tags)];
 }

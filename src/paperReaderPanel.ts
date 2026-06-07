@@ -348,6 +348,8 @@ export class PaperReaderPanel {
           <option value="highlight">Highlight</option>
           <option value="underline">Underline</option>
         </select>
+        <label for="annotationTags">Tags</label>
+        <input id="annotationTags" type="text" placeholder="method, question, todo">
         <textarea id="noteInput" rows="4" placeholder="Your annotation"></textarea>
         <div class="actions">
           <button id="saveAnnotation">Save annotation</button>
@@ -368,6 +370,7 @@ export class PaperReaderPanel {
       <section class="tool-block list-block">
         <h2>Saved annotations</h2>
         <input id="annotationSearch" type="search" placeholder="Search annotations">
+        <input id="annotationTagFilter" type="search" placeholder="Filter by tag">
         <select id="annotationColorFilter">
           <option value="">All colors</option>
           <option value="#ffd654">Yellow</option>

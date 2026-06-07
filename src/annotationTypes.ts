@@ -4,6 +4,7 @@ export interface AnnotationRecord {
   rects?: AnnotationRect[];
   color?: string;
   kind?: AnnotationKind;
+  tags?: string[];
   selectedText: string;
   note: string;
   createdAt: string;
