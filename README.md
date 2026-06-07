@@ -5,7 +5,7 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 ## Current MVP
 
 - Open the current PDF or choose one from disk.
-- Render the selected paper with pdf.js inside a VS Code Webview.
+- Render the selected paper with pdf.js inside a VS Code Webview, lazily loading pages near the viewport.
 - Capture selected PDF text into the translation and annotation panel.
 - Translate selected text through a local LibreTranslate server.
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.

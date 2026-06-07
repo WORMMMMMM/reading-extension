@@ -96,6 +96,22 @@ textarea {
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
 }
 
+.pending-page::after,
+.rendering::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #666;
+  background: #fbfaf7;
+  font-size: 13px;
+  content: "Loading page...";
+}
+
+.rendered::after {
+  content: none;
+}
+
 .pdf-page canvas {
   position: absolute;
   inset: 0;
