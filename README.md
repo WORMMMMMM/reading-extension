@@ -12,6 +12,7 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Edit, delete, jump to, and reactivate saved annotations.
 - Search and filter annotations by text or highlight color.
 - Export annotations to Markdown next to the PDF.
+- Export a highlighted PDF copy next to the PDF.
 - Save vocabulary notes automatically to a sidecar JSON file.
 - Review due vocabulary with a simple spaced repetition loop.
 - Restore the last-read page automatically.
@@ -25,6 +26,7 @@ For a paper named `paper.pdf`, the extension writes local data under:
 .reading-extension/
   paper.pdf.annotations.json
   paper.pdf.annotations.md
+  paper.pdf.annotated.pdf
   paper.pdf.wordbook.json
   paper.pdf.progress.json
 ```
@@ -64,5 +66,5 @@ You can change it in VS Code settings:
 
 - Add a visible LibreTranslate connection check.
 - Add DeepL API Free support.
+- Embed note text as native PDF annotation comments.
 - Improve spaced repetition scheduling and filtering.
-- Export annotations into a marked-up PDF.

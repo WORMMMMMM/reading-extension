@@ -189,8 +189,13 @@ function bindUi() {
   });
 
   document.getElementById('exportAnnotations').addEventListener('click', () => {
-    annotationExportStatus.textContent = 'Exporting annotations...';
+    annotationExportStatus.textContent = 'Exporting annotation Markdown...';
     vscode.postMessage({ type: 'exportAnnotations' });
+  });
+
+  document.getElementById('exportAnnotatedPdf').addEventListener('click', () => {
+    annotationExportStatus.textContent = 'Exporting annotated PDF...';
+    vscode.postMessage({ type: 'exportAnnotatedPdf' });
   });
 
   annotationsList.addEventListener('click', event => {

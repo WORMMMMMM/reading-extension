@@ -19,6 +19,7 @@ type ReaderMessage =
     }
   | { type: 'deleteAnnotation'; payload: { id: string } }
   | { type: 'exportAnnotations' }
+  | { type: 'exportAnnotatedPdf' }
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
   | { type: 'saveProgress'; payload: ProgressRecord }
@@ -100,6 +101,9 @@ export class PaperReaderPanel {
         break;
       case 'exportAnnotations':
         await this.exportAnnotations();
+        break;
+      case 'exportAnnotatedPdf':
+        await this.exportAnnotatedPdf();
         break;
       case 'saveWord':
         await this.storage.addWord(message.payload);
@@ -244,6 +248,27 @@ export class PaperReaderPanel {
     }
   }
 
+  private async exportAnnotatedPdf() {
+    try {
+      const uri = await this.storage.exportAnnotatedPdf();
+      await this.panel.webview.postMessage({
+        type: 'exportResult',
+        payload: {
+          path: uri.fsPath
+        }
+      });
+      vscode.window.showInformationMessage(`Annotated PDF exported: ${uri.fsPath}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.panel.webview.postMessage({
+        type: 'exportResult',
+        payload: {
+          error: message
+        }
+      });
+    }
+  }
+
   private async getHtml() {
     const webview = this.panel.webview;
     const scriptUri = webview.asWebviewUri(
@@ -346,7 +371,10 @@ export class PaperReaderPanel {
           <option value="#ffaaa5">Red</option>
           <option value="#d7b8ff">Purple</option>
         </select>
-        <button id="exportAnnotations">Export Markdown</button>
+        <div class="actions">
+          <button id="exportAnnotations">Export Markdown</button>
+          <button id="exportAnnotatedPdf">Export PDF</button>
+        </div>
         <div id="annotationExportStatus" class="status-line"></div>
         <div id="annotationsList" class="list"></div>
       </section>

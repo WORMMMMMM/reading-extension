@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { PDFDocument, rgb } from 'pdf-lib';
 
 export interface AnnotationRecord {
   id: string;
@@ -115,6 +116,42 @@ export class ReaderStorage {
     return uri;
   }
 
+  async exportAnnotatedPdf() {
+    const [pdfBytes, annotations] = await Promise.all([
+      vscode.workspace.fs.readFile(this.pdfUri),
+      this.readAnnotations()
+    ]);
+    const pdf = await PDFDocument.load(pdfBytes);
+    const pages = pdf.getPages();
+
+    for (const annotation of annotations) {
+      const color = hexToRgb(annotation.color ?? '#ffd654');
+      for (const rect of annotation.rects ?? []) {
+        const page = pages[rect.page - 1];
+        if (!page) {
+          continue;
+        }
+
+        const { width, height } = page.getSize();
+        page.drawRectangle({
+          x: rect.x * width,
+          y: (1 - rect.y - rect.height) * height,
+          width: rect.width * width,
+          height: rect.height * height,
+          color: rgb(color.r, color.g, color.b),
+          opacity: 0.35,
+          borderOpacity: 0
+        });
+      }
+    }
+
+    const exportedBytes = await pdf.save();
+    const uri = this.fileUri('annotated.pdf');
+    await this.ensureStorageDir();
+    await vscode.workspace.fs.writeFile(uri, exportedBytes);
+    return uri;
+  }
+
   async addWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {
     const now = new Date().toISOString();
     const words = await this.readWords();
@@ -159,9 +196,9 @@ export class ReaderStorage {
     });
   }
 
-  private fileUri(kind: 'annotations' | 'annotations.md' | 'wordbook' | 'progress') {
-    const extension = kind === 'annotations.md' ? 'md' : 'json';
-    const stem = kind === 'annotations.md' ? 'annotations' : kind;
+  private fileUri(kind: 'annotations' | 'annotations.md' | 'annotated.pdf' | 'wordbook' | 'progress') {
+    const extension = kind === 'annotations.md' ? 'md' : kind === 'annotated.pdf' ? 'pdf' : 'json';
+    const stem = kind === 'annotations.md' ? 'annotations' : kind === 'annotated.pdf' ? 'annotated' : kind;
     return vscode.Uri.joinPath(this.storageDir, `${this.baseName}.${stem}.${extension}`);
   }
 
@@ -235,4 +272,17 @@ function addDaysIso(date: Date, days: number) {
   next.setDate(next.getDate() + days);
   next.setHours(0, 0, 0, 0);
   return next.toISOString();
+}
+
+function hexToRgb(hex: string) {
+  const normalized = hex.replace('#', '');
+  if (normalized.length !== 6) {
+    return { r: 1, g: 0.84, b: 0.33 };
+  }
+
+  return {
+    r: parseInt(normalized.slice(0, 2), 16) / 255,
+    g: parseInt(normalized.slice(2, 4), 16) / 255,
+    b: parseInt(normalized.slice(4, 6), 16) / 255
+  };
 }
