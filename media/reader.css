@@ -130,7 +130,7 @@ textarea {
 }
 
 .annotation-layer {
-  z-index: 1;
+  z-index: 3;
   pointer-events: none;
 }
 
@@ -139,6 +139,13 @@ textarea {
   border-radius: 2px;
   background: var(--highlight);
   mix-blend-mode: multiply;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.active-highlight {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
 }
 
 .side-panel {
@@ -189,6 +196,7 @@ label {
   font-size: 12px;
 }
 
+select,
 textarea,
 input {
   width: 100%;
@@ -214,6 +222,15 @@ button:hover {
   background: var(--vscode-button-hoverBackground);
 }
 
+.secondary-button {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+.secondary-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -231,8 +248,14 @@ button:hover {
   background: var(--vscode-editor-background);
 }
 
+.item.active-item {
+  border-color: var(--vscode-focusBorder);
+}
+
 .item strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
@@ -255,6 +278,37 @@ button:hover {
 .review-actions button {
   flex: 1;
   padding: 6px 8px;
+}
+
+.edit-status {
+  border-left: 3px solid var(--vscode-focusBorder);
+  padding: 6px 8px;
+  color: var(--vscode-editorInfo-foreground);
+  background: var(--vscode-editorInfo-background);
+  font-size: 12px;
+}
+
+.color-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+
+.annotation-item {
+  cursor: pointer;
+}
+
+.annotation-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.annotation-actions button {
+  flex: 1;
+  padding: 5px 7px;
 }
 
 @media (max-width: 900px) {

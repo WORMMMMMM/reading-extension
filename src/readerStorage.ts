@@ -5,6 +5,7 @@ export interface AnnotationRecord {
   id: string;
   page?: number;
   rects?: AnnotationRect[];
+  color?: string;
   selectedText: string;
   note: string;
   createdAt: string;
@@ -74,11 +75,36 @@ export class ReaderStorage {
     const annotations = await this.readAnnotations();
     annotations.unshift({
       ...input,
+      color: input.color ?? '#ffd654',
       id: cryptoRandomId(),
       createdAt: now,
       updatedAt: now
     });
     await this.writeJson(this.fileUri('annotations'), annotations);
+  }
+
+  async updateAnnotation(
+    id: string,
+    patch: Partial<Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'>>
+  ) {
+    const annotations = await this.readAnnotations();
+    const annotation = annotations.find(item => item.id === id);
+    if (!annotation) {
+      return;
+    }
+
+    Object.assign(annotation, patch, {
+      updatedAt: new Date().toISOString()
+    });
+    await this.writeJson(this.fileUri('annotations'), annotations);
+  }
+
+  async deleteAnnotation(id: string) {
+    const annotations = await this.readAnnotations();
+    await this.writeJson(
+      this.fileUri('annotations'),
+      annotations.filter(item => item.id !== id)
+    );
   }
 
   async addWord(input: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'>) {

@@ -10,6 +10,14 @@ import {
 type ReaderMessage =
   | { type: 'ready' }
   | { type: 'saveAnnotation'; payload: Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'> }
+  | {
+      type: 'updateAnnotation';
+      payload: {
+        id: string;
+        patch: Partial<Omit<AnnotationRecord, 'id' | 'createdAt' | 'updatedAt'>>;
+      };
+    }
+  | { type: 'deleteAnnotation'; payload: { id: string } }
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
   | { type: 'reviewWord'; payload: { id: string; remembered: boolean } }
   | { type: 'saveProgress'; payload: ProgressRecord }
@@ -79,6 +87,14 @@ export class PaperReaderPanel {
         break;
       case 'saveAnnotation':
         await this.storage.addAnnotation(message.payload);
+        await this.postState();
+        break;
+      case 'updateAnnotation':
+        await this.storage.updateAnnotation(message.payload.id, message.payload.patch);
+        await this.postState();
+        break;
+      case 'deleteAnnotation':
+        await this.storage.deleteAnnotation(message.payload.id);
         await this.postState();
         break;
       case 'saveWord':
@@ -268,8 +284,20 @@ export class PaperReaderPanel {
       </section>
       <section class="tool-block">
         <h2>Annotation</h2>
+        <div id="annotationEditStatus" class="edit-status" hidden>Editing annotation</div>
+        <label for="annotationColor">Highlight color</label>
+        <select id="annotationColor">
+          <option value="#ffd654">Yellow</option>
+          <option value="#8fd3ff">Blue</option>
+          <option value="#a6e99f">Green</option>
+          <option value="#ffaaa5">Red</option>
+          <option value="#d7b8ff">Purple</option>
+        </select>
         <textarea id="noteInput" rows="4" placeholder="Your annotation"></textarea>
-        <button id="saveAnnotation">Save annotation</button>
+        <div class="actions">
+          <button id="saveAnnotation">Save annotation</button>
+          <button id="cancelAnnotationEdit" class="secondary-button" hidden>Cancel edit</button>
+        </div>
       </section>
       <section class="tool-block">
         <h2>Wordbook</h2>

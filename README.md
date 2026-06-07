@@ -8,7 +8,8 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Render the selected paper with pdf.js inside a VS Code Webview.
 - Capture selected PDF text into the translation and annotation panel.
 - Translate selected text through a local LibreTranslate server.
-- Save annotations automatically to a sidecar JSON file.
+- Save colored annotations automatically to a sidecar JSON file.
+- Edit, delete, jump to, and reactivate saved annotations.
 - Save vocabulary notes automatically to a sidecar JSON file.
 - Review due vocabulary with a simple spaced repetition loop.
 - Restore the last-read page automatically.

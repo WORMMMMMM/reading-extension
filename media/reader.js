@@ -8,6 +8,10 @@ const viewer = document.getElementById('pdfViewer');
 const selectedText = document.getElementById('selectedText');
 const pageInput = document.getElementById('pageInput');
 const pageTotal = document.getElementById('pageTotal');
+const annotationColor = document.getElementById('annotationColor');
+const annotationEditStatus = document.getElementById('annotationEditStatus');
+const saveAnnotationButton = document.getElementById('saveAnnotation');
+const cancelAnnotationEditButton = document.getElementById('cancelAnnotationEdit');
 const noteInput = document.getElementById('noteInput');
 const wordInput = document.getElementById('wordInput');
 const translationInput = document.getElementById('translationInput');
@@ -26,6 +30,8 @@ let state = { annotations: [], words: [], progress: {} };
 let latestSelectionRects = [];
 let pageObserver;
 let restoredProgress = false;
+let editingAnnotationId;
+let activeAnnotationId;
 
 bindUi();
 loadPdf();
@@ -51,24 +57,42 @@ function bindUi() {
     vscode.postMessage({ type: 'copyPrompt', payload: { text } });
   });
 
-  document.getElementById('saveAnnotation').addEventListener('click', () => {
+  saveAnnotationButton.addEventListener('click', () => {
     const text = selectedText.value.trim();
     const note = noteInput.value.trim();
     if (!text && !note) {
       noteInput.focus();
       return;
     }
+
+    const payload = {
+      page: readPage(),
+      rects: latestSelectionRects,
+      color: annotationColor.value,
+      selectedText: text,
+      note
+    };
+
+    if (editingAnnotationId) {
+      vscode.postMessage({
+        type: 'updateAnnotation',
+        payload: {
+          id: editingAnnotationId,
+          patch: payload
+        }
+      });
+      clearAnnotationEditor();
+      return;
+    }
+
     vscode.postMessage({
       type: 'saveAnnotation',
-      payload: {
-        page: readPage(),
-        rects: latestSelectionRects,
-        selectedText: text,
-        note
-      }
+      payload
     });
     noteInput.value = '';
   });
+
+  cancelAnnotationEditButton.addEventListener('click', clearAnnotationEditor);
 
   document.getElementById('saveWord').addEventListener('click', () => {
     const word = wordInput.value.trim();
@@ -147,6 +171,30 @@ function bindUi() {
         remembered: button.dataset.review === 'remembered'
       }
     });
+  });
+
+  annotationsList.addEventListener('click', event => {
+    const button = event.target.closest('button[data-annotation-action]');
+    const item = event.target.closest('[data-annotation-id]');
+    if (!item) {
+      return;
+    }
+
+    const annotation = findAnnotation(item.dataset.annotationId);
+    if (!annotation) {
+      return;
+    }
+
+    if (button?.dataset.annotationAction === 'edit') {
+      editAnnotation(annotation);
+      return;
+    }
+    if (button?.dataset.annotationAction === 'delete') {
+      deleteAnnotation(annotation);
+      return;
+    }
+
+    focusAnnotation(annotation);
   });
 }
 
@@ -294,12 +342,18 @@ function renderAnnotationOverlays() {
       }
 
       const mark = document.createElement('div');
-      mark.className = 'highlight';
+      mark.className = `highlight${annotation.id === activeAnnotationId ? ' active-highlight' : ''}`;
+      mark.dataset.annotationId = annotation.id;
       mark.title = annotation.note || annotation.selectedText || 'Annotation';
+      mark.style.background = colorWithAlpha(annotation.color || '#ffd654', 0.42);
       mark.style.left = `${rect.x * 100}%`;
       mark.style.top = `${rect.y * 100}%`;
       mark.style.width = `${rect.width * 100}%`;
       mark.style.height = `${rect.height * 100}%`;
+      mark.addEventListener('click', event => {
+        event.stopPropagation();
+        focusAnnotation(annotation, { scroll: false });
+      });
       layer.appendChild(mark);
     }
   }
@@ -395,14 +449,101 @@ function renderAnnotationsList(items) {
 
   for (const item of items.slice(0, 20)) {
     const node = document.createElement('article');
-    node.className = 'item';
+    node.className = `item annotation-item${item.id === activeAnnotationId ? ' active-item' : ''}`;
+    node.dataset.annotationId = item.id;
     node.innerHTML = `
-      <strong>${escapeHtml(item.page ? `Page ${item.page}` : 'Annotation')}</strong>
+      <strong><span class="color-dot" style="background:${escapeHtml(item.color || '#ffd654')}"></span>${escapeHtml(item.page ? `Page ${item.page}` : 'Annotation')}</strong>
       <p>${escapeHtml(item.selectedText || item.note || '')}</p>
       ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ''}
+      <div class="annotation-actions">
+        <button data-annotation-action="jump">Jump</button>
+        <button data-annotation-action="edit">Edit</button>
+        <button data-annotation-action="delete">Delete</button>
+      </div>
     `;
     annotationsList.appendChild(node);
   }
+}
+
+function focusAnnotation(annotation, options = {}) {
+  activeAnnotationId = annotation.id;
+  renderAnnotationsList(state.annotations || []);
+  renderAnnotationOverlays();
+
+  if (options.scroll === false) {
+    return;
+  }
+
+  const firstRect = annotation.rects?.[0];
+  if (firstRect) {
+    goToPage(firstRect.page);
+    requestAnimationFrame(() => scrollToRect(firstRect));
+    return;
+  }
+
+  if (annotation.page) {
+    goToPage(annotation.page);
+  }
+}
+
+function editAnnotation(annotation) {
+  editingAnnotationId = annotation.id;
+  activeAnnotationId = annotation.id;
+  selectedText.value = annotation.selectedText || '';
+  noteInput.value = annotation.note || '';
+  annotationColor.value = annotation.color || '#ffd654';
+  latestSelectionRects = annotation.rects || [];
+  if (annotation.page) {
+    pageInput.value = String(annotation.page);
+  }
+  annotationEditStatus.hidden = false;
+  cancelAnnotationEditButton.hidden = false;
+  saveAnnotationButton.textContent = 'Update annotation';
+  renderAnnotationsList(state.annotations || []);
+  renderAnnotationOverlays();
+  noteInput.focus();
+}
+
+function deleteAnnotation(annotation) {
+  const label = annotation.selectedText || annotation.note || `Page ${annotation.page || ''}`;
+  if (!confirm(`Delete this annotation?\n\n${label.slice(0, 160)}`)) {
+    return;
+  }
+
+  if (editingAnnotationId === annotation.id) {
+    clearAnnotationEditor();
+  }
+  vscode.postMessage({
+    type: 'deleteAnnotation',
+    payload: {
+      id: annotation.id
+    }
+  });
+}
+
+function clearAnnotationEditor() {
+  editingAnnotationId = undefined;
+  annotationEditStatus.hidden = true;
+  cancelAnnotationEditButton.hidden = true;
+  saveAnnotationButton.textContent = 'Save annotation';
+  noteInput.value = '';
+}
+
+function scrollToRect(rect) {
+  const pageEl = document.querySelector(`.pdf-page[data-page="${rect.page}"]`);
+  if (!pageEl) {
+    return;
+  }
+
+  const top = pageEl.offsetTop + rect.y * pageEl.offsetHeight - 80;
+  viewer.scrollTo({
+    top: Math.max(0, top),
+    behavior: 'smooth'
+  });
+}
+
+function findAnnotation(id) {
+  return (state.annotations || []).find(item => item.id === id);
 }
 
 function renderDueWords(items) {
@@ -495,4 +636,15 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function colorWithAlpha(hex, alpha) {
+  const normalized = hex.replace('#', '');
+  if (normalized.length !== 6) {
+    return hex;
+  }
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
