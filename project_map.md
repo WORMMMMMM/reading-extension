@@ -23,7 +23,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers, supports annotation search/filter/style/color/edit/delete/jump/export interactions, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
+- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers, supports annotation search/filter/style/color/edit/delete/jump/export interactions, autosaves edits to existing annotations, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
 - `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
 
 ## Build Output
@@ -65,6 +65,7 @@ VS Code command
 - The reader creates page shells for the whole document, then lazily renders canvas/text content near the viewport with a bounded render queue. Full virtualization can still improve very large documents later.
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
+- Editing an existing annotation uses a short debounce and writes changes back automatically.
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
 - Export logic is covered by `npm test`, which verifies Markdown content and native PDF note comments.
 - Page-only notes are rendered as clickable markers in the page overlay and exported as native PDF comments.

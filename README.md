@@ -11,6 +11,7 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.
 - Show page-only notes as clickable page markers.
 - Edit, delete, jump to, and reactivate saved annotations.
+- Autosave edits to existing annotation notes, colors, styles, text, and page metadata.
 - Search and filter annotations by text, color, or style.
 - Export annotations to Markdown next to the PDF.
 - Export a highlighted PDF copy with native note comments next to the PDF.

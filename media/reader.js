@@ -38,6 +38,9 @@ let renderObserver;
 let restoredProgress = false;
 let editingAnnotationId;
 let activeAnnotationId;
+let annotationAutoSaveTimer;
+let annotationStatusTimer;
+let lastAutoSavedAnnotationSnapshot = '';
 let renderGeneration = 0;
 const renderedPages = new Set();
 const renderingPages = new Set();
@@ -71,23 +74,14 @@ function bindUi() {
   });
 
   saveAnnotationButton.addEventListener('click', () => {
-    const text = selectedText.value.trim();
-    const note = noteInput.value.trim();
-    if (!text && !note) {
+    const payload = readAnnotationEditorPayload();
+    if (!payload.selectedText && !payload.note) {
       noteInput.focus();
       return;
     }
 
-    const payload = {
-      page: readPage(),
-      rects: latestSelectionRects,
-      color: annotationColor.value,
-      kind: annotationKind.value,
-      selectedText: text,
-      note
-    };
-
     if (editingAnnotationId) {
+      cancelPendingAnnotationAutoSave();
       vscode.postMessage({
         type: 'updateAnnotation',
         payload: {
@@ -131,6 +125,7 @@ function bindUi() {
 
   pageInput.addEventListener('change', () => {
     goToPage(readPage() || currentPage);
+    scheduleEditedAnnotationAutoSave();
   });
 
   document.getElementById('prevPage').addEventListener('click', () => {
@@ -150,8 +145,15 @@ function bindUi() {
   });
 
   selectedText.addEventListener('input', () => {
-    latestSelectionRects = [];
+    if (!editingAnnotationId) {
+      latestSelectionRects = [];
+    }
+    scheduleEditedAnnotationAutoSave();
   });
+
+  noteInput.addEventListener('input', scheduleEditedAnnotationAutoSave);
+  annotationColor.addEventListener('change', scheduleEditedAnnotationAutoSave);
+  annotationKind.addEventListener('change', scheduleEditedAnnotationAutoSave);
 
   document.addEventListener('selectionchange', captureSelection);
 
@@ -714,6 +716,7 @@ function focusAnnotation(annotation, options = {}) {
 }
 
 function editAnnotation(annotation) {
+  cancelPendingAnnotationAutoSave();
   editingAnnotationId = annotation.id;
   activeAnnotationId = annotation.id;
   selectedText.value = annotation.selectedText || '';
@@ -724,9 +727,10 @@ function editAnnotation(annotation) {
   if (annotation.page) {
     pageInput.value = String(annotation.page);
   }
-  annotationEditStatus.hidden = false;
+  lastAutoSavedAnnotationSnapshot = snapshotAnnotationPayload(readAnnotationEditorPayload());
+  setAnnotationEditStatus('Editing annotation · autosaves changes');
   cancelAnnotationEditButton.hidden = false;
-  saveAnnotationButton.textContent = 'Update annotation';
+  saveAnnotationButton.textContent = 'Update now';
   renderAnnotationsList(state.annotations || []);
   renderAnnotationOverlays();
   noteInput.focus();
@@ -750,11 +754,100 @@ function deleteAnnotation(annotation) {
 }
 
 function clearAnnotationEditor() {
+  cancelPendingAnnotationAutoSave();
   editingAnnotationId = undefined;
   annotationEditStatus.hidden = true;
   cancelAnnotationEditButton.hidden = true;
   saveAnnotationButton.textContent = 'Save annotation';
   noteInput.value = '';
+  lastAutoSavedAnnotationSnapshot = '';
+}
+
+function readAnnotationEditorPayload() {
+  return {
+    page: readPage(),
+    rects: latestSelectionRects,
+    color: annotationColor.value,
+    kind: annotationKind.value,
+    selectedText: selectedText.value.trim(),
+    note: noteInput.value.trim()
+  };
+}
+
+function scheduleEditedAnnotationAutoSave() {
+  if (!editingAnnotationId) {
+    return;
+  }
+
+  const payload = readAnnotationEditorPayload();
+  const snapshot = snapshotAnnotationPayload(payload);
+  if (snapshot === lastAutoSavedAnnotationSnapshot) {
+    return;
+  }
+
+  if (!payload.selectedText && !payload.note) {
+    setAnnotationEditStatus('Editing annotation · add text or a note to autosave');
+    return;
+  }
+
+  setAnnotationEditStatus('Editing annotation · autosaving...');
+  clearTimeout(annotationAutoSaveTimer);
+  annotationAutoSaveTimer = setTimeout(() => {
+    autoSaveEditedAnnotation();
+  }, 700);
+}
+
+function autoSaveEditedAnnotation() {
+  if (!editingAnnotationId) {
+    return;
+  }
+
+  const payload = readAnnotationEditorPayload();
+  const snapshot = snapshotAnnotationPayload(payload);
+  if (snapshot === lastAutoSavedAnnotationSnapshot || (!payload.selectedText && !payload.note)) {
+    return;
+  }
+
+  lastAutoSavedAnnotationSnapshot = snapshot;
+  vscode.postMessage({
+    type: 'updateAnnotation',
+    payload: {
+      id: editingAnnotationId,
+      patch: payload
+    }
+  });
+  showTemporaryAnnotationStatus('Editing annotation · saved automatically');
+}
+
+function cancelPendingAnnotationAutoSave() {
+  clearTimeout(annotationAutoSaveTimer);
+  clearTimeout(annotationStatusTimer);
+}
+
+function showTemporaryAnnotationStatus(text) {
+  setAnnotationEditStatus(text);
+  clearTimeout(annotationStatusTimer);
+  annotationStatusTimer = setTimeout(() => {
+    if (editingAnnotationId) {
+      setAnnotationEditStatus('Editing annotation · autosaves changes');
+    }
+  }, 1800);
+}
+
+function setAnnotationEditStatus(text) {
+  annotationEditStatus.textContent = text;
+  annotationEditStatus.hidden = false;
+}
+
+function snapshotAnnotationPayload(payload) {
+  return JSON.stringify({
+    page: payload.page,
+    rects: payload.rects || [],
+    color: payload.color,
+    kind: payload.kind,
+    selectedText: payload.selectedText,
+    note: payload.note
+  });
 }
 
 function scrollToRect(rect) {
