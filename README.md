@@ -39,9 +39,12 @@ These files are ordinary JSON, so they can be synchronized with Git, iCloud Driv
 ```bash
 npm install
 npm run compile
+npm test
 ```
 
 Then press `F5` in VS Code to launch an Extension Development Host.
+
+`npm test` compiles the extension and runs a regression check for annotation Markdown export and annotated PDF export.
 
 See `project_map.md` for a file-by-file map of the repository.
 

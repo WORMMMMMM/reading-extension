@@ -49,6 +49,7 @@
   },
   "scripts": {
     "compile": "tsc -p ./",
+    "test": "npm run compile && node scripts/test-annotation-exports.mjs",
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `package.json`: VS Code extension manifest, contributed command, configuration, scripts, and npm dependencies including pdf.js rendering and PDF export helpers.
 - `package-lock.json`: Locked dependency graph for reproducible installs.
 - `tsconfig.json`: TypeScript compiler settings. Source files compile from `src/` into `out/`.
+- `scripts/test-annotation-exports.mjs`: Node regression test that checks annotation Markdown export and annotated PDF comment export after TypeScript compilation.
 - `.gitignore`: Local files excluded from git, including `node_modules/`, compiled output, packaged extensions, and sidecar reading data.
 - `.vscodeignore`: Files excluded when packaging the extension.
 - `project_map.md`: This file. Keep it updated when files or responsibilities change.
@@ -16,7 +17,9 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
 - `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
-- `src/readerStorage.ts`: Sidecar JSON persistence and export logic. It stores colored highlight/underline annotations, exports annotation Markdown, exports highlighted PDF copies with native note comments, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
+- `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads.
+- `src/annotationExports.ts`: Pure annotation export helpers. It formats annotation Markdown and applies visible highlight/underline marks plus native note comments to PDF bytes.
+- `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
 
 ## Webview Assets
 
@@ -63,6 +66,7 @@ VS Code command
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
+- Export logic is covered by `npm test`, which verifies Markdown content and native PDF note comments.
 - Page-only notes are rendered as clickable markers in the page overlay and exported as native PDF comments.
 - Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
