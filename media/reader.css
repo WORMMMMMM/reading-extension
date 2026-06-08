@@ -112,6 +112,17 @@ textarea {
   content: none;
 }
 
+.render-error::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--vscode-errorForeground, #b00020);
+  background: #fbfaf7;
+  font-size: 13px;
+  content: "Could not render this page";
+}
+
 .pdf-page canvas {
   position: absolute;
   inset: 0;

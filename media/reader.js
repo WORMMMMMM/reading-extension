@@ -432,7 +432,7 @@ async function renderPageContentNow(pageEl, generation) {
     textLayer.innerHTML = '';
 
     await page.render({
-      canvasContext: canvas.getContext('2d'),
+      canvas,
       viewport
     }).promise;
 
@@ -440,14 +440,21 @@ async function renderPageContentNow(pageEl, generation) {
       return;
     }
 
-    await renderTextLayer(page, viewport, textLayer);
+    try {
+      await renderTextLayer(page, viewport, textLayer);
+    } catch (error) {
+      console.warn(`Could not render text layer for page ${pageNumber}.`, error);
+    }
+
     renderedPages.add(pageNumber);
     pageEl.classList.remove('rendering');
     pageEl.classList.add('rendered');
     readerStatus.textContent = `Ready · rendered ${renderedPages.size} / ${pdfDoc.numPages}`;
   } catch (error) {
     console.error(error);
-    readerStatus.textContent = `Could not render page ${pageNumber}`;
+    pageEl.classList.remove('rendering');
+    pageEl.classList.add('render-error');
+    readerStatus.textContent = `Could not render page ${pageNumber}: ${formatErrorMessage(error)}`;
   } finally {
     renderingPages.delete(pageNumber);
   }
