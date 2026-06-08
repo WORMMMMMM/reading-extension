@@ -359,6 +359,12 @@ button:hover {
   overflow-wrap: anywhere;
 }
 
+.inline-status-button {
+  margin-left: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+}
+
 .edit-status {
   border-left: 3px solid var(--vscode-focusBorder);
   padding: 6px 8px;

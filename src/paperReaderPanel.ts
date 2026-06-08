@@ -19,6 +19,7 @@ type ReaderMessage =
       };
     }
   | { type: 'deleteAnnotation'; payload: { id: string } }
+  | { type: 'restoreAnnotation'; payload: AnnotationRecord }
   | { type: 'copyAnnotationMarkdown'; payload: { id: string } }
   | { type: 'exportAnnotations' }
   | { type: 'exportAnnotatedPdf' }
@@ -100,6 +101,11 @@ export class PaperReaderPanel {
       case 'deleteAnnotation':
         await this.storage.deleteAnnotation(message.payload.id);
         await this.postState();
+        break;
+      case 'restoreAnnotation':
+        await this.storage.restoreAnnotation(message.payload);
+        await this.postState();
+        await this.postAnnotationActionResult('Annotation restored.');
         break;
       case 'copyAnnotationMarkdown':
         await this.copyAnnotationMarkdown(message.payload.id);
@@ -278,6 +284,16 @@ export class PaperReaderPanel {
         }
       });
     }
+  }
+
+  private async postAnnotationActionResult(message: string, error?: string) {
+    await this.panel.webview.postMessage({
+      type: 'annotationActionResult',
+      payload: {
+        message,
+        error
+      }
+    });
   }
 
   private async exportAnnotatedPdf() {

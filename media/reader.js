@@ -47,6 +47,7 @@ let activeAnnotationId;
 let annotationAutoSaveTimer;
 let annotationStatusTimer;
 let annotationPreviewEl;
+let lastDeletedAnnotation;
 let lastAutoSavedAnnotationSnapshot = '';
 let renderGeneration = 0;
 const renderedPages = new Set();
@@ -182,6 +183,10 @@ function bindUi() {
       showClipboardResult(message.payload);
       return;
     }
+    if (message.type === 'annotationActionResult') {
+      showAnnotationActionResult(message.payload);
+      return;
+    }
     if (message.type !== 'state') {
       return;
     }
@@ -226,6 +231,13 @@ function bindUi() {
 
   annotationSort.addEventListener('change', () => {
     renderAnnotationsList(state.annotations || []);
+  });
+
+  annotationExportStatus.addEventListener('click', event => {
+    const button = event.target.closest('button[data-status-action]');
+    if (button?.dataset.statusAction === 'undoDelete') {
+      undoDeleteAnnotation();
+    }
   });
 
   document.getElementById('exportAnnotations').addEventListener('click', () => {
@@ -1004,12 +1016,14 @@ function deleteAnnotation(annotation) {
   if (editingAnnotationId === annotation.id) {
     clearAnnotationEditor();
   }
+  lastDeletedAnnotation = annotation;
   vscode.postMessage({
     type: 'deleteAnnotation',
     payload: {
       id: annotation.id
     }
   });
+  showUndoDeleteStatus(annotation);
 }
 
 function copyAnnotationMarkdown(annotation) {
@@ -1020,6 +1034,27 @@ function copyAnnotationMarkdown(annotation) {
       id: annotation.id
     }
   });
+}
+
+function undoDeleteAnnotation() {
+  if (!lastDeletedAnnotation) {
+    return;
+  }
+
+  vscode.postMessage({
+    type: 'restoreAnnotation',
+    payload: lastDeletedAnnotation
+  });
+  lastDeletedAnnotation = undefined;
+  annotationExportStatus.textContent = 'Restoring annotation...';
+}
+
+function showUndoDeleteStatus(annotation) {
+  const label = annotation.selectedText || annotation.note || `Page ${annotation.page || ''}`;
+  annotationExportStatus.innerHTML = `
+    <span>Deleted: ${escapeHtml(label.slice(0, 80))}</span>
+    <button class="inline-status-button" data-status-action="undoDelete">Undo</button>
+  `;
 }
 
 function clearAnnotationEditor() {
@@ -1227,6 +1262,15 @@ function showClipboardResult(payload) {
   }
 
   annotationExportStatus.textContent = payload.message || 'Copied.';
+}
+
+function showAnnotationActionResult(payload) {
+  if (payload.error) {
+    annotationExportStatus.textContent = payload.error;
+    return;
+  }
+
+  annotationExportStatus.textContent = payload.message || 'Done.';
 }
 
 function isDueForReview(item) {

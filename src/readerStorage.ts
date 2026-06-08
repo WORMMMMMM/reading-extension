@@ -93,6 +93,16 @@ export class ReaderStorage {
     );
   }
 
+  async restoreAnnotation(record: AnnotationRecord) {
+    const annotations = await this.readAnnotations();
+    if (annotations.some(item => item.id === record.id)) {
+      return;
+    }
+
+    annotations.unshift(record);
+    await this.writeJson(this.fileUri('annotations'), annotations);
+  }
+
   async exportAnnotationsMarkdown() {
     const annotations = await this.readAnnotations();
     const markdown = formatAnnotationsMarkdown(this.baseName, annotations);
