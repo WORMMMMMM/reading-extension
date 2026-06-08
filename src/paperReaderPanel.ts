@@ -51,10 +51,7 @@ export class PaperReaderPanel {
       column,
       {
         enableScripts: true,
-        localResourceRoots: [
-          extensionUri,
-          vscode.Uri.file(path.dirname(pdfUri.fsPath))
-        ]
+        localResourceRoots: getLocalResourceRoots(extensionUri, pdfUri)
       }
     );
 
@@ -81,6 +78,10 @@ export class PaperReaderPanel {
     this.pdfUri = pdfUri;
     this.storage = new ReaderStorage(pdfUri);
     this.panel.title = `Reader: ${path.basename(pdfUri.fsPath)}`;
+    this.panel.webview.options = {
+      ...this.panel.webview.options,
+      localResourceRoots: getLocalResourceRoots(this.extensionUri, pdfUri)
+    };
     await this.storage.ensureStorageDir();
     this.panel.webview.html = await this.getHtml();
   }
@@ -474,6 +475,13 @@ function getNonce() {
     nonce += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return nonce;
+}
+
+function getLocalResourceRoots(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
+  return [
+    extensionUri,
+    vscode.Uri.file(path.dirname(pdfUri.fsPath))
+  ];
 }
 
 function escapeHtml(value: string) {

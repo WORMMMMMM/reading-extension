@@ -282,7 +282,12 @@ function bindUi() {
 async function loadPdf() {
   try {
     readerStatus.textContent = 'Loading PDF...';
-    const loadingTask = pdfjsLib.getDocument(config.pdfUrl);
+    const loadingTask = pdfjsLib.getDocument({
+      url: config.pdfUrl,
+      disableAutoFetch: true,
+      disableRange: true,
+      disableStream: true
+    });
     pdfDoc = await loadingTask.promise;
     pageTotal.textContent = `/ ${pdfDoc.numPages}`;
     currentPage = clampPage(currentPage);
@@ -291,8 +296,31 @@ async function loadPdf() {
     goToPage(currentPage, { smooth: false });
     readerStatus.textContent = 'Ready';
   } catch (error) {
-    console.error(error);
-    readerStatus.textContent = 'Could not load PDF';
+    console.error('PDF URL load failed, retrying with fetched bytes.', error);
+    await loadPdfFromBytes(error);
+  }
+}
+
+async function loadPdfFromBytes(originalError) {
+  try {
+    readerStatus.textContent = 'Retrying PDF load...';
+    const response = await fetch(config.pdfUrl);
+    if (!response.ok) {
+      throw new Error(`PDF fetch returned HTTP ${response.status}.`);
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+    pdfDoc = await loadingTask.promise;
+    pageTotal.textContent = `/ ${pdfDoc.numPages}`;
+    currentPage = clampPage(currentPage);
+    pageInput.max = String(pdfDoc.numPages);
+    await renderPdf();
+    goToPage(currentPage, { smooth: false });
+    readerStatus.textContent = 'Ready';
+  } catch (error) {
+    console.error('PDF byte fallback failed.', error);
+    readerStatus.textContent = `Could not load PDF: ${formatErrorMessage(error || originalError)}`;
   }
 }
 
@@ -1366,6 +1394,16 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function formatErrorMessage(error) {
+  if (!error) {
+    return 'Unknown error';
+  }
+  if (error instanceof Error) {
+    return error.message || error.name;
+  }
+  return String(error);
 }
 
 function colorWithAlpha(hex, alpha) {

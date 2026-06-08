@@ -73,6 +73,10 @@ You can change it in VS Code settings:
 }
 ```
 
+## Troubleshooting
+
+If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and falls back to loading PDF bytes directly if pdf.js URL loading fails.
+
 ## Roadmap
 
 - Add a visible LibreTranslate connection check.
