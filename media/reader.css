@@ -196,6 +196,30 @@ textarea {
   outline-offset: 2px;
 }
 
+.annotation-preview {
+  position: fixed;
+  z-index: 30;
+  border: 1px solid var(--vscode-editorWidget-border, var(--border));
+  padding: 10px;
+  color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground));
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.annotation-preview strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.annotation-preview p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .side-panel {
   overflow: auto;
   height: 100vh;

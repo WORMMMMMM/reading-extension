@@ -45,6 +45,7 @@ let editingAnnotationId;
 let activeAnnotationId;
 let annotationAutoSaveTimer;
 let annotationStatusTimer;
+let annotationPreviewEl;
 let lastAutoSavedAnnotationSnapshot = '';
 let renderGeneration = 0;
 const renderedPages = new Set();
@@ -163,6 +164,8 @@ function bindUi() {
   annotationKind.addEventListener('change', scheduleEditedAnnotationAutoSave);
 
   document.addEventListener('selectionchange', captureSelection);
+  viewer.addEventListener('scroll', hideAnnotationPreview);
+  window.addEventListener('resize', hideAnnotationPreview);
 
   window.addEventListener('message', event => {
     const message = event.data;
@@ -499,6 +502,7 @@ function elementFromRect(rect) {
 }
 
 function renderAnnotationOverlays() {
+  hideAnnotationPreview();
   document.querySelectorAll('.annotation-layer').forEach(layer => {
     layer.innerHTML = '';
   });
@@ -519,6 +523,9 @@ function renderAnnotationOverlays() {
       const kind = annotation.kind || 'highlight';
       mark.className = `highlight ${kind === 'underline' ? 'underline-mark' : 'highlight-mark'}${annotation.id === activeAnnotationId ? ' active-highlight' : ''}`;
       mark.dataset.annotationId = annotation.id;
+      mark.tabIndex = 0;
+      mark.setAttribute('role', 'button');
+      mark.setAttribute('aria-label', `Annotation on page ${rect.page}`);
       mark.title = annotation.note || annotation.selectedText || 'Annotation';
       if (kind === 'underline') {
         mark.style.color = annotation.color || '#ffd654';
@@ -534,6 +541,7 @@ function renderAnnotationOverlays() {
         event.stopPropagation();
         focusAnnotation(annotation, { scroll: false });
       });
+      bindAnnotationPreview(mark, annotation);
       layer.appendChild(mark);
     }
   }
@@ -561,7 +569,67 @@ function renderPageNoteMarker(annotation) {
     event.stopPropagation();
     focusAnnotation(annotation, { scroll: false });
   });
+  bindAnnotationPreview(marker, annotation);
   layer.appendChild(marker);
+}
+
+function bindAnnotationPreview(anchor, annotation) {
+  anchor.addEventListener('mouseenter', () => showAnnotationPreview(anchor, annotation));
+  anchor.addEventListener('mouseleave', hideAnnotationPreview);
+  anchor.addEventListener('focus', () => showAnnotationPreview(anchor, annotation));
+  anchor.addEventListener('blur', hideAnnotationPreview);
+}
+
+function showAnnotationPreview(anchor, annotation) {
+  if (!annotationPreviewEl) {
+    annotationPreviewEl = document.createElement('aside');
+    annotationPreviewEl.className = 'annotation-preview';
+    document.body.appendChild(annotationPreviewEl);
+  }
+
+  annotationPreviewEl.innerHTML = renderAnnotationPreview(annotation);
+  annotationPreviewEl.hidden = false;
+  positionAnnotationPreview(anchor, annotationPreviewEl);
+}
+
+function hideAnnotationPreview() {
+  if (annotationPreviewEl) {
+    annotationPreviewEl.hidden = true;
+  }
+}
+
+function positionAnnotationPreview(anchor, previewEl) {
+  const anchorRect = anchor.getBoundingClientRect();
+  const margin = 10;
+  const previewWidth = Math.min(340, Math.max(240, window.innerWidth - margin * 2));
+  previewEl.style.width = `${previewWidth}px`;
+
+  const topCandidate = anchorRect.bottom + margin;
+  const measuredHeight = previewEl.offsetHeight || 160;
+  const top = topCandidate + measuredHeight > window.innerHeight - margin
+    ? Math.max(margin, anchorRect.top - measuredHeight - margin)
+    : topCandidate;
+  const left = Math.min(
+    Math.max(margin, anchorRect.left),
+    Math.max(margin, window.innerWidth - previewWidth - margin)
+  );
+
+  previewEl.style.top = `${top}px`;
+  previewEl.style.left = `${left}px`;
+}
+
+function renderAnnotationPreview(annotation) {
+  const title = `${annotation.page ? `Page ${annotation.page}` : 'Annotation'} · ${annotation.kind || 'highlight'}`;
+  const primary = annotation.selectedText || annotation.note || 'Page note';
+  const note = annotation.note && annotation.note !== primary ? `<p>${escapeHtml(annotation.note)}</p>` : '';
+
+  return `
+    <strong><span class="color-dot" style="background:${escapeHtml(annotation.color || '#ffd654')}"></span>${escapeHtml(title)}</strong>
+    <p>${escapeHtml(primary)}</p>
+    ${renderAnnotationContext(annotation)}
+    ${note}
+    ${renderTagChips(annotation.tags)}
+  `;
 }
 
 function isPageNoteAnnotation(annotation) {
