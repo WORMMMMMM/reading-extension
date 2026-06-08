@@ -23,7 +23,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers with hover/focus previews, supports annotation search/filter/sort/tag/style/color/edit/delete/jump/copy/export interactions, autosaves edits to existing annotations, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
+- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers with hover/focus previews, supports annotation search/filter/sort/tag/style/color/edit/delete/jump/copy/export interactions, renders annotation summaries, autosaves edits to existing annotations, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
 - `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
 
 ## Build Output
@@ -67,6 +67,7 @@ VS Code command
 - Captured PDF selections can store short before/after context strings for later review.
 - Highlight and page note overlays show a compact annotation preview on hover or keyboard focus.
 - Individual annotations can be copied as Markdown through the extension host clipboard path.
+- The annotation list summarizes the current filtered view by style, color, and top tags.
 - Annotation tags are stored as optional string arrays and included in Markdown/PDF note exports.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotation lists can be sorted by document position, creation time, or last edit; Markdown export uses document position.

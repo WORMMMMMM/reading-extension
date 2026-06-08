@@ -367,6 +367,30 @@ button:hover {
   font-size: 12px;
 }
 
+.annotation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 18px;
+}
+
+.summary-chip {
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  color: var(--muted);
+  background: var(--vscode-editor-background);
+  font-size: 11px;
+}
+
+.summary-chip strong {
+  margin-left: 3px;
+  color: var(--vscode-editor-foreground);
+}
+
+.summary-tag {
+  background: var(--vscode-badge-background);
+}
+
 .color-dot {
   flex: 0 0 auto;
   width: 10px;

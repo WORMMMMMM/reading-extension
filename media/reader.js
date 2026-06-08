@@ -26,6 +26,7 @@ const annotationKindFilter = document.getElementById('annotationKindFilter');
 const annotationSort = document.getElementById('annotationSort');
 const annotationExportStatus = document.getElementById('annotationExportStatus');
 const annotationListStatus = document.getElementById('annotationListStatus');
+const annotationSummary = document.getElementById('annotationSummary');
 const annotationsList = document.getElementById('annotationsList');
 const dueWordsList = document.getElementById('dueWordsList');
 const wordsList = document.getElementById('wordsList');
@@ -770,6 +771,7 @@ function renderAnnotationsList(items) {
     sortedItems.length,
     items.length
   );
+  renderAnnotationSummary(sortedItems);
   if (!sortedItems.length) {
     annotationsList.appendChild(emptyItem(items.length ? 'No matching annotations.' : 'No annotations saved yet.'));
     return;
@@ -828,6 +830,62 @@ function filterAnnotations(items) {
     ].join('\n').toLowerCase();
     return haystack.includes(query);
   });
+}
+
+function renderAnnotationSummary(items) {
+  if (!items.length) {
+    annotationSummary.innerHTML = '';
+    return;
+  }
+
+  const styleCounts = countBy(items, item => item.kind || 'highlight');
+  const colorCounts = countBy(items, item => colorName(item.color || '#ffd654'));
+  const tagCounts = countTags(items);
+  const chips = [
+    ...summaryEntries(styleCounts, 'style'),
+    ...summaryEntries(colorCounts, 'color'),
+    ...summaryEntries(tagCounts, 'tag').slice(0, 6)
+  ];
+
+  annotationSummary.innerHTML = chips.map(chip => `
+    <span class="summary-chip ${chip.type === 'tag' ? 'summary-tag' : ''}">
+      ${escapeHtml(chip.label)} <strong>${chip.count}</strong>
+    </span>
+  `).join('');
+}
+
+function summaryEntries(counts, type) {
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([label, count]) => ({ type, label, count }));
+}
+
+function countBy(items, getKey) {
+  return items.reduce((counts, item) => {
+    const key = getKey(item);
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function countTags(items) {
+  return items.reduce((counts, item) => {
+    for (const tag of normalizeTags(item.tags || [])) {
+      counts[`#${tag}`] = (counts[`#${tag}`] || 0) + 1;
+    }
+    return counts;
+  }, {});
+}
+
+function colorName(color) {
+  const names = {
+    '#ffd654': 'yellow',
+    '#8fd3ff': 'blue',
+    '#a6e99f': 'green',
+    '#ffaaa5': 'red',
+    '#d7b8ff': 'purple'
+  };
+  return names[color] || color;
 }
 
 function sortAnnotationsForDisplay(items) {

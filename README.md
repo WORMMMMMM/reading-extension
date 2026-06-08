@@ -16,6 +16,7 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Autosave edits to existing annotation notes, colors, styles, text, and page metadata.
 - Copy a single annotation as Markdown from the annotation list.
 - Add tags to annotations, then search and filter them by tag.
+- See a live summary of the current annotation view by style, color, and top tags.
 - Search, filter, and sort annotations by text, tag, color, style, paper order, creation time, or edit time.
 - Export annotations to Markdown next to the PDF, ordered by paper position and including tags/context.
 - Export a highlighted PDF copy with native note comments next to the PDF.

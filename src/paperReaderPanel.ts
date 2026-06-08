@@ -427,6 +427,7 @@ export class PaperReaderPanel {
         </div>
         <div id="annotationExportStatus" class="status-line"></div>
         <div id="annotationListStatus" class="status-line"></div>
+        <div id="annotationSummary" class="annotation-summary"></div>
         <div id="annotationsList" class="list"></div>
       </section>
       <section class="tool-block list-block">
