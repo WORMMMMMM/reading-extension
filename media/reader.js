@@ -1,5 +1,8 @@
 const vscode = acquireVsCodeApi();
 const config = window.readerConfig;
+
+installPdfJsCompatibilityPolyfills();
+
 const pdfjsLib = await import(config.pdfJsUrl);
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = config.pdfWorkerUrl;
@@ -60,6 +63,34 @@ let activeRenderCount = 0;
 bindUi();
 loadPdf();
 vscode.postMessage({ type: 'ready' });
+
+function installPdfJsCompatibilityPolyfills() {
+  if (typeof Map.prototype.getOrInsertComputed !== 'function') {
+    Object.defineProperty(Map.prototype, 'getOrInsertComputed', {
+      configurable: true,
+      writable: true,
+      value(key, callback) {
+        if (!this.has(key)) {
+          this.set(key, callback(key));
+        }
+        return this.get(key);
+      }
+    });
+  }
+
+  if (typeof Map.prototype.getOrInsert !== 'function') {
+    Object.defineProperty(Map.prototype, 'getOrInsert', {
+      configurable: true,
+      writable: true,
+      value(key, value) {
+        if (!this.has(key)) {
+          this.set(key, value);
+        }
+        return this.get(key);
+      }
+    });
+  }
+}
 
 function bindUi() {
   document.getElementById('translateLocal').addEventListener('click', () => {

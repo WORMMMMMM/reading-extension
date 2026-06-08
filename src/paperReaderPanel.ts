@@ -327,10 +327,10 @@ export class PaperReaderPanel {
       vscode.Uri.joinPath(this.extensionUri, 'media', 'reader.css')
     );
     const pdfJsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'build', 'pdf.mjs')
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.mjs')
     );
     const pdfWorkerUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.mjs')
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.mjs')
     );
     const pdfWebviewUri = webview.asWebviewUri(this.pdfUri);
     const nonce = getNonce();
