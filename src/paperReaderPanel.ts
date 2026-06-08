@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { formatAnnotationMarkdownSnippet } from './annotationExports';
 import {
   AnnotationRecord,
   ProgressRecord,
@@ -18,6 +19,7 @@ type ReaderMessage =
       };
     }
   | { type: 'deleteAnnotation'; payload: { id: string } }
+  | { type: 'copyAnnotationMarkdown'; payload: { id: string } }
   | { type: 'exportAnnotations' }
   | { type: 'exportAnnotatedPdf' }
   | { type: 'saveWord'; payload: Omit<WordRecord, 'id' | 'createdAt' | 'updatedAt'> }
@@ -98,6 +100,9 @@ export class PaperReaderPanel {
       case 'deleteAnnotation':
         await this.storage.deleteAnnotation(message.payload.id);
         await this.postState();
+        break;
+      case 'copyAnnotationMarkdown':
+        await this.copyAnnotationMarkdown(message.payload.id);
         break;
       case 'exportAnnotations':
         await this.exportAnnotations();
@@ -241,6 +246,33 @@ export class PaperReaderPanel {
       const message = error instanceof Error ? error.message : String(error);
       await this.panel.webview.postMessage({
         type: 'exportResult',
+        payload: {
+          error: message
+        }
+      });
+    }
+  }
+
+  private async copyAnnotationMarkdown(id: string) {
+    try {
+      const annotations = await this.storage.readAnnotations();
+      const annotation = annotations.find(item => item.id === id);
+      if (!annotation) {
+        throw new Error('Annotation not found.');
+      }
+
+      await vscode.env.clipboard.writeText(formatAnnotationMarkdownSnippet(annotation));
+      await this.panel.webview.postMessage({
+        type: 'clipboardResult',
+        payload: {
+          message: 'Annotation Markdown copied.'
+        }
+      });
+      vscode.window.showInformationMessage('Annotation Markdown copied.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.panel.webview.postMessage({
+        type: 'clipboardResult',
         payload: {
           error: message
         }

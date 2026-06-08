@@ -177,6 +177,10 @@ function bindUi() {
       showExportResult(message.payload);
       return;
     }
+    if (message.type === 'clipboardResult') {
+      showClipboardResult(message.payload);
+      return;
+    }
     if (message.type !== 'state') {
       return;
     }
@@ -251,6 +255,10 @@ function bindUi() {
     }
     if (button?.dataset.annotationAction === 'delete') {
       deleteAnnotation(annotation);
+      return;
+    }
+    if (button?.dataset.annotationAction === 'copyMarkdown') {
+      copyAnnotationMarkdown(annotation);
       return;
     }
 
@@ -780,6 +788,7 @@ function renderAnnotationsList(items) {
       <div class="annotation-actions">
         <button data-annotation-action="jump">Jump</button>
         <button data-annotation-action="edit">Edit</button>
+        <button data-annotation-action="copyMarkdown">Copy MD</button>
         <button data-annotation-action="delete">Delete</button>
       </div>
     `;
@@ -939,6 +948,16 @@ function deleteAnnotation(annotation) {
   }
   vscode.postMessage({
     type: 'deleteAnnotation',
+    payload: {
+      id: annotation.id
+    }
+  });
+}
+
+function copyAnnotationMarkdown(annotation) {
+  annotationExportStatus.textContent = 'Copying annotation Markdown...';
+  vscode.postMessage({
+    type: 'copyAnnotationMarkdown',
     payload: {
       id: annotation.id
     }
@@ -1141,6 +1160,15 @@ function showExportResult(payload) {
   }
 
   annotationExportStatus.textContent = `Exported: ${payload.path}`;
+}
+
+function showClipboardResult(payload) {
+  if (payload.error) {
+    annotationExportStatus.textContent = `Copy failed: ${payload.error}`;
+    return;
+  }
+
+  annotationExportStatus.textContent = payload.message || 'Copied.';
 }
 
 function isDueForReview(item) {

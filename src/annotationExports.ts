@@ -19,33 +19,15 @@ export function formatAnnotationsMarkdown(
   }
 
   for (const annotation of sortAnnotationsByDocumentPosition(annotations)) {
-    const tags = normalizeTags(annotation.tags);
-    const context = formatAnnotationContext(annotation);
-    lines.push(
-      `## ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.kind ?? 'highlight'}, ${annotation.color ?? '#ffd654'})`
-    );
-    lines.push('');
-    if (annotation.selectedText) {
-      lines.push('> ' + annotation.selectedText.replace(/\n/g, '\n> '));
-      lines.push('');
-    }
-    if (annotation.note) {
-      lines.push(annotation.note);
-      lines.push('');
-    }
-    if (context) {
-      lines.push(`Context: ${context}`);
-      lines.push('');
-    }
-    if (tags.length) {
-      lines.push(`- Tags: ${tags.join(', ')}`);
-    }
-    lines.push(`- Created: ${annotation.createdAt}`);
-    lines.push(`- Updated: ${annotation.updatedAt}`);
+    lines.push(...formatAnnotationMarkdownBlock(annotation, '##'));
     lines.push('');
   }
 
   return lines.join('\n');
+}
+
+export function formatAnnotationMarkdownSnippet(annotation: AnnotationRecord) {
+  return formatAnnotationMarkdownBlock(annotation, '###').join('\n');
 }
 
 export function sortAnnotationsByDocumentPosition(annotations: AnnotationRecord[]) {
@@ -217,6 +199,35 @@ function normalizeTags(value: unknown) {
     .map(tag => String(tag).trim().replace(/^#/, '').toLowerCase())
     .filter(Boolean);
   return [...new Set(tags)];
+}
+
+function formatAnnotationMarkdownBlock(annotation: AnnotationRecord, headingPrefix: '##' | '###') {
+  const tags = normalizeTags(annotation.tags);
+  const context = formatAnnotationContext(annotation);
+  const lines = [
+    `${headingPrefix} ${annotation.page ? `Page ${annotation.page}` : 'Annotation'} (${annotation.kind ?? 'highlight'}, ${annotation.color ?? '#ffd654'})`,
+    ''
+  ];
+
+  if (annotation.selectedText) {
+    lines.push('> ' + annotation.selectedText.replace(/\n/g, '\n> '));
+    lines.push('');
+  }
+  if (annotation.note) {
+    lines.push(annotation.note);
+    lines.push('');
+  }
+  if (context) {
+    lines.push(`Context: ${context}`);
+    lines.push('');
+  }
+  if (tags.length) {
+    lines.push(`- Tags: ${tags.join(', ')}`);
+  }
+  lines.push(`- Created: ${annotation.createdAt}`);
+  lines.push(`- Updated: ${annotation.updatedAt}`);
+
+  return lines;
 }
 
 function hasNativeCommentDetails(annotation: AnnotationRecord) {

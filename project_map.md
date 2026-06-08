@@ -18,12 +18,12 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
 - `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
 - `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags and selection context.
-- `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes.
+- `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats full or single-annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes.
 - `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers with hover/focus previews, supports annotation search/filter/sort/tag/style/color/edit/delete/jump/export interactions, autosaves edits to existing annotations, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
+- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers with hover/focus previews, supports annotation search/filter/sort/tag/style/color/edit/delete/jump/copy/export interactions, autosaves edits to existing annotations, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
 - `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
 
 ## Build Output
@@ -66,6 +66,7 @@ VS Code command
 - Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
 - Captured PDF selections can store short before/after context strings for later review.
 - Highlight and page note overlays show a compact annotation preview on hover or keyboard focus.
+- Individual annotations can be copied as Markdown through the extension host clipboard path.
 - Annotation tags are stored as optional string arrays and included in Markdown/PDF note exports.
 - Annotation colors are stored per annotation as hex strings and styles are stored as `highlight` or `underline`; older annotations fall back to yellow highlight.
 - Annotation lists can be sorted by document position, creation time, or last edit; Markdown export uses document position.

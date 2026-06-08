@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const { PDFDocument } = require('pdf-lib');
 const {
   applyAnnotationsToPdf,
+  formatAnnotationMarkdownSnippet,
   formatAnnotationsMarkdown,
   sortAnnotationsByDocumentPosition
 } = require('../out/annotationExports.js');
@@ -79,6 +80,11 @@ assert.ok(
 
 const sortedIds = sortAnnotationsByDocumentPosition(annotations).map(item => item.id);
 assert.deepEqual(sortedIds, ['highlight-with-note', 'underline-only', 'page-note', 'later-page']);
+
+const snippet = formatAnnotationMarkdownSnippet(annotations[1]);
+assert.match(snippet, /^### Page 1 \(highlight, #ffd654\)/);
+assert.match(snippet, /- Tags: method, important/);
+assert.doesNotMatch(snippet, /^# Annotations for/m);
 
 const sourcePdf = await PDFDocument.create();
 sourcePdf.addPage([400, 300]);
