@@ -9,9 +9,11 @@ import {
   useHighlightContainerContext,
   type Highlight,
   type PdfHighlighterUtils,
+  type PdfScaleValue,
   type PdfSelection,
   type ScaledPosition
 } from 'react-pdf-highlighter-plus';
+import 'pdfjs-dist/web/pdf_viewer.css';
 import 'react-pdf-highlighter-plus/style/style.css';
 import './styles.css';
 import { readerConfig, vscode } from './vscodeApi';
@@ -69,7 +71,7 @@ function App() {
   const [sortMode, setSortMode] = useState('position');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageTotal, setPageTotal] = useState(0);
-  const [zoom, setZoom] = useState<number | 'page-width'>('page-width');
+  const [zoom, setZoom] = useState<PdfScaleValue>('page-fit');
   const [status, setStatus] = useState('Loading PDF...');
   const [activeId, setActiveId] = useState<string | undefined>();
   const [lastDeleted, setLastDeleted] = useState<AnnotationRecord | undefined>();
@@ -343,10 +345,11 @@ function App() {
             <span>/ {pageTotal || '-'}</span>
           </label>
           <button title="Next page" onClick={() => goToPage(currentPage + 1)}>Next</button>
-          <button title="Zoom out" onClick={() => setZoom(value => clampZoom(value === 'page-width' ? 1 : value - 0.15))}>-</button>
-          <span className="zoom-value">{zoom === 'page-width' ? 'Width' : `${Math.round(zoom * 100)}%`}</span>
-          <button title="Zoom in" onClick={() => setZoom(value => clampZoom(value === 'page-width' ? 1.15 : value + 0.15))}>+</button>
-          <button title="Fit page width" onClick={() => setZoom('page-width')}>Fit</button>
+          <button title="Zoom out" onClick={() => setZoom(value => clampZoom(typeof value === 'number' ? value - 0.15 : 0.85))}>-</button>
+          <span className="zoom-value">{zoomLabel(zoom)}</span>
+          <button title="Zoom in" onClick={() => setZoom(value => clampZoom(typeof value === 'number' ? value + 0.15 : 1.15))}>+</button>
+          <button title="Fit full page" onClick={() => setZoom('page-fit')}>Fit</button>
+          <button title="Fit page width" onClick={() => setZoom('page-width')}>Width</button>
           <span className="reader-status">{status}</span>
         </div>
         <div className="pdf-host">
@@ -491,7 +494,7 @@ function PdfDocumentView({
   activeId?: string;
   highlights: ReaderHighlight[];
   pdfDocument: { numPages: number };
-  zoom: number | 'page-width';
+  zoom: PdfScaleValue;
   onDelete(annotation: AnnotationRecord): void;
   onDocumentReady(numPages: number): void;
   onOpen(annotation: AnnotationRecord): void;
@@ -728,6 +731,22 @@ function annotationStatus(shown: number, total: number) {
 
 function clampZoom(value: number) {
   return Math.min(Math.max(value, 0.5), 2.4);
+}
+
+function zoomLabel(value: PdfScaleValue) {
+  if (typeof value === 'number') {
+    return `${Math.round(value * 100)}%`;
+  }
+  if (value === 'page-fit') {
+    return 'Fit';
+  }
+  if (value === 'page-width') {
+    return 'Width';
+  }
+  if (value === 'page-actual') {
+    return '100%';
+  }
+  return value;
 }
 
 function safeRatio(value: number, total: number) {

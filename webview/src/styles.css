@@ -136,13 +136,31 @@ textarea {
   max-width: 100%;
 }
 
-.pdf-host .page,
-.pdf-host .textLayer,
-.pdf-host .textLayer span {
+.pdf-host .textLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  overflow: hidden;
+  pointer-events: auto;
   user-select: text;
 }
 
-.pdf-host .textLayer {
+.pdf-host .textLayer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  user-select: text;
+}
+
+.pdf-host .annotationLayer {
+  z-index: 3;
+  pointer-events: none;
+}
+
+.pdf-host .annotationLayer :is(a, button, input, textarea, select, [role="button"]) {
   pointer-events: auto;
 }
 
