@@ -18,7 +18,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 ## Source
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
-- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, CSS, and the local PDF.js worker into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
+- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, and CSS into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
 - `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags, selection context, legacy normalized rects, and `react-pdf-highlighter-plus` positions.
 - `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats full or single-annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes for both legacy rects and new highlighter positions.
 - `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores, restores, and deletes colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
@@ -26,7 +26,8 @@ This repository is a VS Code extension prototype for reading papers with transla
 
 ## Webview Assets
 
-- `webview/src/main.tsx`: React reader app. It uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, then sends save/copy/review/translation/export events back to the extension host.
+- `webview/src/main.tsx`: React reader app. It pre-registers PDF.js `WorkerMessageHandler` so PDF.js uses fake-worker mode in VS Code Webviews, uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, then sends save/copy/review/translation/export events back to the extension host.
+- `webview/src/pdfjsWorker.d.ts`: Type declaration for importing PDF.js worker internals into the Webview bundle.
 - `webview/src/styles.css`: Reader layout, toolbar, side panel, annotation list, wordbook, and responsive rules.
 - `webview/src/types.ts`: Webview-side copies of persisted annotation, progress, and wordbook data shapes.
 - `webview/src/vscodeApi.ts`: Small wrapper around `acquireVsCodeApi()` and injected reader config.

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { WorkerMessageHandler } from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import {
   AreaHighlight,
   PdfHighlighter,
@@ -15,6 +16,12 @@ import 'react-pdf-highlighter-plus/style/style.css';
 import './styles.css';
 import { readerConfig, vscode } from './vscodeApi';
 import type { AnnotationKind, AnnotationRecord, AnnotationRect, ReaderStatePayload, WordRecord } from './types';
+
+type PdfjsGlobal = typeof globalThis & {
+  pdfjsWorker?: { WorkerMessageHandler: unknown };
+};
+
+(globalThis as PdfjsGlobal).pdfjsWorker = { WorkerMessageHandler };
 
 type ReaderHighlight = Highlight & {
   annotation: AnnotationRecord;

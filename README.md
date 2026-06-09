@@ -77,7 +77,7 @@ You can change it in VS Code settings:
 
 ## Troubleshooting
 
-If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and uses the local PDF.js worker bundled with `react-pdf-highlighter-plus`.
+If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and pre-registers the PDF.js worker handler in the Webview bundle so PDF.js can run in fake-worker mode inside VS Code.
 
 ## Roadmap
 
