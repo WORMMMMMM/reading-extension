@@ -34,15 +34,34 @@
           "default": "http://localhost:5000/translate",
           "description": "Local LibreTranslate endpoint used by the in-panel translation button."
         },
+        "readingExtension.translationProvider": {
+          "type": "string",
+          "default": "argos",
+          "enum": [
+            "argos",
+            "libretranslate"
+          ],
+          "description": "Local translation provider. Argos uses a local Python helper; LibreTranslate calls the configured HTTP endpoint."
+        },
+        "readingExtension.argosPythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Python path for local Argos Translate. Empty means .venv-translate/bin/python inside the extension folder."
+        },
+        "readingExtension.translationFallbackToLibreTranslate": {
+          "type": "boolean",
+          "default": true,
+          "description": "When Argos local translation fails, fall back to the configured LibreTranslate endpoint."
+        },
         "readingExtension.translationSource": {
           "type": "string",
           "default": "auto",
-          "description": "Source language code sent to LibreTranslate."
+          "description": "Source language code used by the local translation provider."
         },
         "readingExtension.translationTarget": {
           "type": "string",
           "default": "zh",
-          "description": "Target language code sent to LibreTranslate."
+          "description": "Target language code used by the local translation provider."
         }
       }
     }

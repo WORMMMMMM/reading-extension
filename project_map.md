@@ -9,6 +9,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `package-lock.json`: Locked dependency graph for reproducible installs.
 - `tsconfig.json`: TypeScript compiler settings. Source files compile from `src/` into `out/`.
 - `scripts/test-annotation-exports.mjs`: Node regression test that checks annotation Markdown ordering, Markdown content, legacy/new annotation geometry export, annotated PDF comment export, and vocabulary review scheduling after TypeScript compilation.
+- `scripts/argos_translate.py`: Python helper used by the extension host for local Argos Translate calls. It reads JSON from stdin and writes a JSON translation result to stdout so the Webview never needs direct Python or network access.
 - `.gitignore`: Local files excluded from git, including `node_modules/`, compiled output, packaged extensions, and sidecar reading data.
 - `.vscodeignore`: Files excluded when packaging the extension.
 - `project_map.md`: This file. Keep it updated when files or responsibilities change.
@@ -18,7 +19,7 @@ This repository is a VS Code extension prototype for reading papers with transla
 ## Source
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
-- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, and CSS into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
+- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, and CSS into the Webview, handles messages from the reader UI, calls local Argos Translate or LibreTranslate, and delegates persistence to `ReaderStorage`.
 - `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags, selection context, legacy normalized rects, and `react-pdf-highlighter-plus` positions.
 - `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats full or single-annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes for both legacy rects and new highlighter positions.
 - `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores, restores, and deletes colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
@@ -64,7 +65,7 @@ VS Code command
   -> user actions
   -> Webview postMessage
   -> src/paperReaderPanel.ts
-  -> local LibreTranslate or src/readerStorage.ts
+  -> local Argos/LibreTranslate or src/readerStorage.ts
   -> translation result or .reading-extension/*.json
 ```
 
@@ -84,7 +85,7 @@ VS Code command
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
 - Export logic is covered by `npm test`, which verifies Markdown content, new highlighter-position compatibility, native PDF note comments, and vocabulary review scheduling.
 - Page-only notes are kept in the annotation list and exported as native PDF comments.
-- Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction.
+- Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction. Argos Translate is the default provider and LibreTranslate remains available as an HTTP fallback.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
 - Vocabulary review uses a deliberately small interval list for now: due immediately, then 1, 3, 7, 14, and 30 days.
 - `project_map.md` should be updated whenever a major file is added, removed, or changes responsibility.

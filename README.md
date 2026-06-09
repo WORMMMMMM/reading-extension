@@ -7,7 +7,7 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 - Open the current PDF or choose one from disk.
 - Render the selected paper through a React Webview powered by `react-pdf-highlighter-plus`.
 - Capture selected PDF text with the library-managed PDF.js text layer.
-- Translate selected text through a local LibreTranslate server.
+- Translate selected text locally through Argos Translate, with optional LibreTranslate fallback.
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.
 - Save surrounding text context for captured PDF selections.
 - Reopen text highlights from the PDF or the annotation list.
@@ -59,19 +59,32 @@ See `project_map.md` for a file-by-file map of the repository.
 
 ## Local Translation
 
-The extension can call a local LibreTranslate server without using paid AI APIs. The default endpoint is:
+The default local provider is Argos Translate. It runs through the project-local Python virtual environment at:
 
 ```text
-http://localhost:5000/translate
+.venv-translate/bin/python
 ```
 
-You can change it in VS Code settings:
+The helper script is `scripts/argos_translate.py`, and the current setup has the offline `en -> zh` package installed. This path keeps translation free and local, but quality is more limited than ChatGPT or a paid translation API.
+
+Useful VS Code settings:
 
 ```json
 {
+  "readingExtension.translationProvider": "argos",
+  "readingExtension.argosPythonPath": "",
+  "readingExtension.translationFallbackToLibreTranslate": true,
   "readingExtension.libreTranslateEndpoint": "http://localhost:5000/translate",
   "readingExtension.translationSource": "auto",
   "readingExtension.translationTarget": "zh"
+}
+```
+
+If Argos fails and fallback is enabled, the extension will try the configured LibreTranslate endpoint. To use LibreTranslate as the primary provider, set:
+
+```json
+{
+  "readingExtension.translationProvider": "libretranslate"
 }
 ```
 
@@ -81,7 +94,7 @@ If the reader shows `Could not load PDF`, reload the Extension Development Host 
 
 ## Roadmap
 
-- Add a visible LibreTranslate connection check.
+- Add a visible local translation connection check.
 - Add DeepL API Free support.
 - Add optional free-text notes, drawing, and shape tools from `react-pdf-highlighter-plus`.
 - Improve exported PDF highlight fidelity for rotated/cropped pages.

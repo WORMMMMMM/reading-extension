@@ -1,4 +1,6 @@
 import * as path from 'path';
+import * as fs from 'fs';
+import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import { formatAnnotationMarkdownSnippet } from './annotationExports';
 import {
@@ -172,12 +174,62 @@ export class PaperReaderPanel {
     }
 
     try {
-      const translatedText = await this.translateWithLibreTranslate(trimmed);
+      const translatedText = await this.translateWithLocalProvider(trimmed);
       await this.postTranslationResult(translatedText);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await this.postTranslationResult('', message);
     }
+  }
+
+  private async translateWithLocalProvider(text: string) {
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const provider = config.get<string>('translationProvider') || 'argos';
+
+    if (provider === 'argos') {
+      try {
+        return await this.translateWithArgos(text);
+      } catch (error) {
+        if (config.get<boolean>('translationFallbackToLibreTranslate') === false) {
+          throw error;
+        }
+      }
+    }
+
+    return this.translateWithLibreTranslate(text);
+  }
+
+  private async translateWithArgos(text: string) {
+    const config = vscode.workspace.getConfiguration('readingExtension');
+    const configuredPython = config.get<string>('argosPythonPath')?.trim();
+    const pythonPath = configuredPython || path.join(this.extensionUri.fsPath, '.venv-translate', 'bin', 'python');
+    const scriptPath = path.join(this.extensionUri.fsPath, 'scripts', 'argos_translate.py');
+    const source = normalizeArgosLanguage(config.get<string>('translationSource') || 'auto', 'en');
+    const target = normalizeArgosLanguage(config.get<string>('translationTarget') || 'zh', 'zh');
+
+    if (!fs.existsSync(pythonPath)) {
+      throw new Error(`Argos Python not found at ${pythonPath}.`);
+    }
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Argos helper script not found at ${scriptPath}.`);
+    }
+
+    const payload = JSON.stringify({ text, source, target });
+    const result = await runProcess(pythonPath, [scriptPath], payload, 45000);
+    const jsonLine = result.stdout
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .reverse()
+      .find(line => line.startsWith('{') && line.endsWith('}'));
+    const parsed = JSON.parse(jsonLine || '{}') as { translatedText?: string; error?: string };
+    if (parsed.error) {
+      throw new Error(parsed.error);
+    }
+    if (!parsed.translatedText) {
+      throw new Error(result.stderr || 'Argos Translate did not return translatedText.');
+    }
+
+    return parsed.translatedText;
   }
 
   private async translateWithLibreTranslate(text: string) {
@@ -399,4 +451,54 @@ function getLocalResourceRoots(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
     extensionUri,
     vscode.Uri.file(path.dirname(pdfUri.fsPath))
   ];
+}
+
+function normalizeArgosLanguage(value: string, fallback: string) {
+  const normalized = value.toLowerCase();
+  if (normalized === 'auto') {
+    return fallback;
+  }
+  if (normalized === 'zh-cn' || normalized === 'zh_hans' || normalized === 'zh-hans') {
+    return 'zh';
+  }
+  if (normalized === 'zh-tw' || normalized === 'zh_hant' || normalized === 'zh-hant') {
+    return 'zt';
+  }
+  return normalized;
+}
+
+function runProcess(command: string, args: string[], stdin: string, timeoutMs: number) {
+  return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    const child = cp.spawn(command, args, {
+      cwd: path.dirname(command),
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    const timeout = setTimeout(() => {
+      child.kill();
+      reject(new Error('Local translation timed out.'));
+    }, timeoutMs);
+
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', chunk => {
+      stderr += chunk.toString();
+    });
+    child.on('error', error => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.on('close', code => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+      reject(new Error(stderr || stdout || `Local translation exited with code ${code}.`));
+    });
+
+    child.stdin.end(stdin);
+  });
 }

@@ -1,6 +1,7 @@
 node_modules/
 out/
 dist/
+.venv-translate/
 *.vsix
 *.map
 vite.webview.config.js
