@@ -354,6 +354,12 @@ export class PaperReaderPanel {
     </main>
   </div>
   <script nonce="${nonce}">
+    window.process = window.process || { env: {} };
+    window.process.env = {
+      ...window.process.env,
+      NODE_ENV: 'production',
+      DRAGGABLE_DEBUG: ''
+    };
     window.readerConfig = ${readerConfig};
     window.addEventListener('error', event => {
       const root = document.getElementById('root');
