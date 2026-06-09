@@ -345,7 +345,6 @@ function App() {
         <div className="pdf-host">
           <PdfLoader
             document={readerConfig.pdfUrl}
-            workerSrc={readerConfig.pdfWorkerUrl}
             beforeLoad={progress => <div className="loading">Loading PDF {progress.loaded ? `${Math.round(progress.loaded / 1024)} KB` : ''}</div>}
             errorMessage={error => <div className="loading error">Could not load PDF: {error.message}</div>}
             onError={error => setStatus(`Could not load PDF: ${error.message}`)}

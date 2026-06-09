@@ -26140,7 +26140,6 @@ function Df() {
 				className: "pdf-host",
 				children: /* @__PURE__ */ (0, L.jsx)(Sf, {
 					document: wf.pdfUrl,
-					workerSrc: wf.pdfWorkerUrl,
 					beforeLoad: (e) => /* @__PURE__ */ (0, L.jsxs)("div", {
 						className: "loading",
 						children: ["Loading PDF ", e.loaded ? `${Math.round(e.loaded / 1024)} KB` : ""]

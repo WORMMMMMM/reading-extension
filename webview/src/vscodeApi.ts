@@ -1,6 +1,5 @@
 export interface ReaderConfig {
   pdfUrl: string;
-  pdfWorkerUrl: string;
   paperName: string;
 }
 
