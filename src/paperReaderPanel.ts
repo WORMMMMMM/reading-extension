@@ -321,23 +321,20 @@ export class PaperReaderPanel {
   private async getHtml() {
     const webview = this.panel.webview;
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'media', 'reader.js')
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'reader-app.js')
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'media', 'reader.css')
-    );
-    const pdfJsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.mjs')
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'reader-app.css')
     );
     const pdfWorkerUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.mjs')
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'react-pdf-highlighter-plus', 'dist', 'esm', 'pdf.worker.min.mjs')
     );
     const pdfWebviewUri = webview.asWebviewUri(this.pdfUri);
     const nonce = getNonce();
     const readerConfig = JSON.stringify({
       pdfUrl: pdfWebviewUri.toString(),
-      pdfJsUrl: pdfJsUri.toString(),
-      pdfWorkerUrl: pdfWorkerUri.toString()
+      pdfWorkerUrl: pdfWorkerUri.toString(),
+      paperName: path.basename(this.pdfUri.fsPath)
     });
 
     return `<!DOCTYPE html>
@@ -350,109 +347,7 @@ export class PaperReaderPanel {
   <title>Reading Extension</title>
 </head>
 <body>
-  <main class="shell">
-    <section class="reader">
-      <div class="reader-toolbar">
-        <button id="prevPage" title="Previous page">Prev</button>
-        <label class="page-jump">
-          <span>Page</span>
-          <input id="pageInput" type="number" min="1" value="1">
-          <span id="pageTotal">/ -</span>
-        </label>
-        <button id="nextPage" title="Next page">Next</button>
-        <button id="zoomOut" title="Zoom out">-</button>
-        <span id="zoomValue">100%</span>
-        <button id="zoomIn" title="Zoom in">+</button>
-        <span id="readerStatus" class="reader-status">Loading PDF...</span>
-      </div>
-      <div id="pdfViewer" class="pdf-viewer" aria-label="PDF pages"></div>
-    </section>
-    <aside class="side-panel">
-      <header>
-        <p class="eyebrow">Reading Extension</p>
-        <h1>${escapeHtml(path.basename(this.pdfUri.fsPath))}</h1>
-      </header>
-      <section class="tool-block">
-        <label for="selectedText">Selected text</label>
-        <textarea id="selectedText" rows="6" placeholder="Paste selected paper text here for translation, annotation, or vocabulary capture."></textarea>
-        <div class="actions">
-          <button id="translateLocal">Translate locally</button>
-          <button id="copyPrompt">Copy ChatGPT prompt</button>
-        </div>
-        <textarea id="translationOutput" rows="5" placeholder="Local translation will appear here."></textarea>
-      </section>
-      <section class="tool-block">
-        <h2>Annotation</h2>
-        <div id="annotationEditStatus" class="edit-status" hidden>Editing annotation</div>
-        <label for="annotationColor">Highlight color</label>
-        <select id="annotationColor">
-          <option value="#ffd654">Yellow</option>
-          <option value="#8fd3ff">Blue</option>
-          <option value="#a6e99f">Green</option>
-          <option value="#ffaaa5">Red</option>
-          <option value="#d7b8ff">Purple</option>
-        </select>
-        <label for="annotationKind">Annotation style</label>
-        <select id="annotationKind">
-          <option value="highlight">Highlight</option>
-          <option value="underline">Underline</option>
-        </select>
-        <label for="annotationTags">Tags</label>
-        <input id="annotationTags" type="text" placeholder="method, question, todo">
-        <textarea id="noteInput" rows="4" placeholder="Your annotation"></textarea>
-        <div class="actions">
-          <button id="saveAnnotation">Save annotation</button>
-          <button id="cancelAnnotationEdit" class="secondary-button" hidden>Cancel edit</button>
-        </div>
-      </section>
-      <section class="tool-block">
-        <h2>Wordbook</h2>
-        <input id="wordInput" type="text" placeholder="Word or phrase">
-        <input id="translationInput" type="text" placeholder="Translation">
-        <textarea id="wordNoteInput" rows="3" placeholder="Definition, memory note, or context"></textarea>
-        <button id="saveWord">Save word</button>
-      </section>
-      <section class="tool-block list-block">
-        <h2>Due today</h2>
-        <div id="dueWordsList" class="list"></div>
-      </section>
-      <section class="tool-block list-block">
-        <h2>Saved annotations</h2>
-        <input id="annotationSearch" type="search" placeholder="Search annotations">
-        <input id="annotationTagFilter" type="search" placeholder="Filter by tag">
-        <select id="annotationColorFilter">
-          <option value="">All colors</option>
-          <option value="#ffd654">Yellow</option>
-          <option value="#8fd3ff">Blue</option>
-          <option value="#a6e99f">Green</option>
-          <option value="#ffaaa5">Red</option>
-          <option value="#d7b8ff">Purple</option>
-        </select>
-        <select id="annotationKindFilter">
-          <option value="">All styles</option>
-          <option value="highlight">Highlight</option>
-          <option value="underline">Underline</option>
-        </select>
-        <select id="annotationSort">
-          <option value="position">Sort by paper order</option>
-          <option value="created">Sort by newest</option>
-          <option value="updated">Sort by recently edited</option>
-        </select>
-        <div class="actions">
-          <button id="exportAnnotations">Export Markdown</button>
-          <button id="exportAnnotatedPdf">Export PDF</button>
-        </div>
-        <div id="annotationExportStatus" class="status-line"></div>
-        <div id="annotationListStatus" class="status-line"></div>
-        <div id="annotationSummary" class="annotation-summary"></div>
-        <div id="annotationsList" class="list"></div>
-      </section>
-      <section class="tool-block list-block">
-        <h2>Wordbook</h2>
-        <div id="wordsList" class="list"></div>
-      </section>
-    </aside>
-  </main>
+  <div id="root"></div>
   <script nonce="${nonce}">window.readerConfig = ${readerConfig};</script>
   <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
 </body>
@@ -482,13 +377,4 @@ function getLocalResourceRoots(extensionUri: vscode.Uri, pdfUri: vscode.Uri) {
     extensionUri,
     vscode.Uri.file(path.dirname(pdfUri.fsPath))
   ];
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

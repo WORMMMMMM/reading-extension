@@ -1,4 +1,7 @@
 src/
+webview/
+vite.webview.config.*
+tsconfig.webview.json
 .vscode/
 tsconfig.json
 *.map

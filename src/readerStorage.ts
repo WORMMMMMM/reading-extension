@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { applyAnnotationsToPdf, formatAnnotationsMarkdown } from './annotationExports';
 import { AnnotationRecord } from './annotationTypes';
+import { advanceWordReview, createInitialWordReview } from './wordReview';
 
 export type { AnnotationKind, AnnotationRecord, AnnotationRect } from './annotationTypes';
 
@@ -129,10 +130,7 @@ export class ReaderStorage {
     words.unshift({
       ...input,
       id: cryptoRandomId(),
-      review: input.review ?? {
-        level: 0,
-        nextReviewAt: startOfTodayIso()
-      },
+      review: input.review ?? createInitialWordReview(),
       createdAt: now,
       updatedAt: now
     });
@@ -146,15 +144,9 @@ export class ReaderStorage {
       return;
     }
 
-    const currentLevel = word.review?.level ?? 0;
-    const nextLevel = remembered ? Math.min(currentLevel + 1, reviewIntervalsDays.length - 1) : 0;
     const now = new Date();
 
-    word.review = {
-      level: nextLevel,
-      lastReviewedAt: now.toISOString(),
-      nextReviewAt: addDaysIso(now, remembered ? reviewIntervalsDays[nextLevel] : 1)
-    };
+    word.review = advanceWordReview(word.review, remembered, now);
     word.updatedAt = now.toISOString();
 
     await this.writeJson(this.fileUri('wordbook'), words);
@@ -197,19 +189,4 @@ export class ReaderStorage {
 
 function cryptoRandomId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-const reviewIntervalsDays = [0, 1, 3, 7, 14, 30];
-
-function startOfTodayIso() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString();
-}
-
-function addDaysIso(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  next.setHours(0, 0, 0, 0);
-  return next.toISOString();
 }

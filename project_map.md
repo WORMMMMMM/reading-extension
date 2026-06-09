@@ -5,26 +5,34 @@ This repository is a VS Code extension prototype for reading papers with transla
 ## Root Files
 
 - `README.md`: User-facing overview, setup commands, current MVP, and roadmap.
-- `package.json`: VS Code extension manifest, contributed command, configuration, scripts, and npm dependencies including pdf.js rendering and PDF export helpers.
+- `package.json`: VS Code extension manifest, contributed command, configuration, scripts, and npm dependencies including the React Webview, `react-pdf-highlighter-plus`, pdf.js, and PDF export helpers.
 - `package-lock.json`: Locked dependency graph for reproducible installs.
 - `tsconfig.json`: TypeScript compiler settings. Source files compile from `src/` into `out/`.
-- `scripts/test-annotation-exports.mjs`: Node regression test that checks annotation Markdown ordering, Markdown content, and annotated PDF comment export after TypeScript compilation.
+- `scripts/test-annotation-exports.mjs`: Node regression test that checks annotation Markdown ordering, Markdown content, legacy/new annotation geometry export, annotated PDF comment export, and vocabulary review scheduling after TypeScript compilation.
 - `.gitignore`: Local files excluded from git, including `node_modules/`, compiled output, packaged extensions, and sidecar reading data.
 - `.vscodeignore`: Files excluded when packaging the extension.
 - `project_map.md`: This file. Keep it updated when files or responsibilities change.
+- `vite.webview.config.ts`: Vite build config that bundles the React Webview into `media/reader-app.js` and `media/reader-app.css`.
+- `tsconfig.webview.json`: Type-checking config for the React Webview source.
 
 ## Source
 
 - `src/extension.ts`: Extension entrypoint. Registers `readingExtension.openReader`, resolves the target PDF, and opens the reader panel.
-- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, pdf.js, CSS, and JS resource URIs into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
-- `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags and selection context.
-- `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats full or single-annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes.
+- `src/paperReaderPanel.ts`: Owns the VS Code Webview panel. It wires PDF, the React bundle, CSS, and the local PDF.js worker into the Webview, handles messages from the reader UI, calls local LibreTranslate, and delegates persistence to `ReaderStorage`.
+- `src/annotationTypes.ts`: Shared annotation TypeScript types used by storage, export helpers, and Webview message payloads, including optional annotation tags, selection context, legacy normalized rects, and `react-pdf-highlighter-plus` positions.
+- `src/annotationExports.ts`: Pure annotation export helpers. It sorts annotations by paper position, formats full or single-annotation Markdown with tags/context, and applies visible highlight/underline marks plus native note comments to PDF bytes for both legacy rects and new highlighter positions.
 - `src/readerStorage.ts`: Sidecar JSON persistence layer. It stores, restores, and deletes colored highlight/underline annotations, calls annotation export helpers, stores vocabulary, vocabulary review state, and reading progress under `.reading-extension/` next to the PDF being read.
+- `src/wordReview.ts`: Pure vocabulary review scheduling helpers used by storage and covered by Node tests.
 
 ## Webview Assets
 
-- `media/reader.js`: Browser-side reader app. It uses pdf.js to lazily render pages near the viewport, captures text selection, tracks current page, draws annotation highlights/underlines/page-note markers with hover/focus previews, supports annotation search/filter/sort/tag/style/color/edit/delete/undo/jump/copy/export interactions, renders annotation summaries, autosaves edits to existing annotations, renders local translation results, shows due vocabulary, and sends save/copy/review events back to the extension host.
-- `media/reader.css`: Reader layout, PDF page presentation, text selection layer, highlight overlay, side panel, and responsive rules.
+- `webview/src/main.tsx`: React reader app. It uses `react-pdf-highlighter-plus` for PDF rendering, text selection, zoom, scrolling, and highlight overlays, then sends save/copy/review/translation/export events back to the extension host.
+- `webview/src/styles.css`: Reader layout, toolbar, side panel, annotation list, wordbook, and responsive rules.
+- `webview/src/types.ts`: Webview-side copies of persisted annotation, progress, and wordbook data shapes.
+- `webview/src/vscodeApi.ts`: Small wrapper around `acquireVsCodeApi()` and injected reader config.
+- `media/reader-app.js`: Generated Webview JavaScript bundle. Built by `npm run build:webview`.
+- `media/reader-app.css`: Generated Webview CSS bundle. Built by `npm run build:webview`.
+- `media/pdf_viewer-*.mjs`: Generated PDF.js viewer chunk emitted by Vite for the Webview bundle.
 
 ## Build Output
 
@@ -52,7 +60,7 @@ VS Code command
   -> src/extension.ts
   -> src/paperReaderPanel.ts
   -> Webview HTML
-  -> media/reader.js + pdfjs-dist
+  -> media/reader-app.js + react-pdf-highlighter-plus
   -> user actions
   -> Webview postMessage
   -> src/paperReaderPanel.ts
@@ -62,10 +70,10 @@ VS Code command
 
 ## Development Notes
 
-- The reader creates page shells for the whole document, then lazily renders canvas/text content near the viewport with a bounded render queue. Full virtualization can still improve very large documents later.
-- Annotations are stored as normalized page rectangles, so highlights survive zoom changes.
+- The reader delegates PDF canvas, text layer, selection, scrolling, and zoom behavior to `react-pdf-highlighter-plus`.
+- New annotations store `react-pdf-highlighter-plus` positions plus derived normalized rectangles for export compatibility; older annotations with only normalized rectangles still load.
 - Captured PDF selections can store short before/after context strings for later review.
-- Highlight and page note overlays show a compact annotation preview on hover or keyboard focus.
+- Text highlights can be reopened from the PDF layer, while all annotations can be jumped to and edited from the side list.
 - Individual annotations can be copied as Markdown through the extension host clipboard path.
 - The annotation list summarizes the current filtered view by style, color, and top tags.
 - Last deleted annotation can be restored from the status line without losing its original id or timestamps.
@@ -74,8 +82,8 @@ VS Code command
 - Annotation lists can be sorted by document position, creation time, or last edit; Markdown export uses document position.
 - Editing an existing annotation uses a short debounce and writes changes back automatically.
 - Annotated PDF export draws visible highlight rectangles and creates native `/Text` comment annotations for note text.
-- Export logic is covered by `npm test`, which verifies Markdown content and native PDF note comments.
-- Page-only notes are rendered as clickable markers in the page overlay and exported as native PDF comments.
+- Export logic is covered by `npm test`, which verifies Markdown content, new highlighter-position compatibility, native PDF note comments, and vocabulary review scheduling.
+- Page-only notes are kept in the annotation list and exported as native PDF comments.
 - Local translation calls happen from the extension host instead of the Webview, which avoids Webview CORS friction.
 - The ChatGPT prompt copy path remains available as a no-extra-API-cost fallback.
 - Vocabulary review uses a deliberately small interval list for now: due immediately, then 1, 3, 7, 14, and 30 days.

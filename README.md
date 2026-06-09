@@ -5,13 +5,13 @@ A VS Code extension prototype for paper reading workflows: translation prompts, 
 ## Current MVP
 
 - Open the current PDF or choose one from disk.
-- Render the selected paper with pdf.js inside a VS Code Webview, lazily loading pages near the viewport.
-- Capture selected PDF text into the translation and annotation panel.
+- Render the selected paper through a React Webview powered by `react-pdf-highlighter-plus`.
+- Capture selected PDF text with the library-managed PDF.js text layer.
 - Translate selected text through a local LibreTranslate server.
 - Save colored highlight and underline annotations automatically to a sidecar JSON file.
 - Save surrounding text context for captured PDF selections.
-- Preview annotations directly from highlighted text or page note markers.
-- Show page-only notes as clickable page markers.
+- Reopen text highlights from the PDF or the annotation list.
+- Keep page-only notes in the saved list and annotated PDF export.
 - Edit, delete, jump to, and reactivate saved annotations.
 - Undo the last annotation deletion from the reader status line.
 - Autosave edits to existing annotation notes, colors, styles, text, and page metadata.
@@ -51,7 +51,9 @@ npm test
 
 Then press `F5` in VS Code to launch an Extension Development Host.
 
-`npm test` compiles the extension and runs a regression check for annotation Markdown export and annotated PDF export.
+`npm run compile` builds both the React Webview bundle under `media/` and the extension host under `out/`.
+
+`npm test` compiles the extension and runs regression checks for annotation Markdown export, annotated PDF export, highlighter-position annotation compatibility, and vocabulary review scheduling.
 
 See `project_map.md` for a file-by-file map of the repository.
 
@@ -75,11 +77,12 @@ You can change it in VS Code settings:
 
 ## Troubleshooting
 
-If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and falls back to loading PDF bytes directly if pdf.js URL loading fails.
+If the reader shows `Could not load PDF`, reload the Extension Development Host and run `Reading Extension: Open Paper Reader` again. The reader updates its Webview resource roots whenever the active PDF changes and uses the local PDF.js worker bundled with `react-pdf-highlighter-plus`.
 
 ## Roadmap
 
 - Add a visible LibreTranslate connection check.
 - Add DeepL API Free support.
+- Add optional free-text notes, drawing, and shape tools from `react-pdf-highlighter-plus`.
 - Improve exported PDF highlight fidelity for rotated/cropped pages.
 - Improve spaced repetition scheduling and filtering.

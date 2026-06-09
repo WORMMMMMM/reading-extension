@@ -43,7 +43,7 @@ export async function applyAnnotationsToPdf(
 
   for (const annotation of annotations) {
     const color = hexToRgb(annotation.color ?? '#ffd654');
-    for (const rect of annotation.rects ?? []) {
+    for (const rect of getAnnotationRects(annotation)) {
       const page = pages[rect.page - 1];
       if (!page) {
         continue;
@@ -92,7 +92,7 @@ function addNativeTextAnnotation(
   annotation: AnnotationRecord,
   color: { r: number; g: number; b: number }
 ) {
-  const firstRect = annotation.rects?.[0];
+  const firstRect = getAnnotationRects(annotation)[0];
   const pageIndex = firstRect ? firstRect.page - 1 : (annotation.page ?? 1) - 1;
   const page = pages[pageIndex];
   if (!page) {
@@ -180,12 +180,36 @@ function compareAnnotationsByDocumentPosition(a: AnnotationRecord, b: Annotation
 }
 
 function getAnnotationPosition(annotation: AnnotationRecord) {
-  const firstRect = annotation.rects?.[0];
+  const firstRect = getAnnotationRects(annotation)[0];
   return {
     page: firstRect?.page ?? annotation.page ?? Number.MAX_SAFE_INTEGER,
     y: firstRect?.y ?? Number.MAX_SAFE_INTEGER,
     x: firstRect?.x ?? Number.MAX_SAFE_INTEGER
   };
+}
+
+function getAnnotationRects(annotation: AnnotationRecord) {
+  if (annotation.rects?.length) {
+    return annotation.rects;
+  }
+
+  const position = annotation.highlighterPosition;
+  if (!position) {
+    return [];
+  }
+
+  const rects = position.rects.length ? position.rects : [position.boundingRect];
+  return rects.map(rect => ({
+    page: rect.pageNumber,
+    x: safeRatio(rect.x1, rect.width),
+    y: safeRatio(rect.y1, rect.height),
+    width: safeRatio(rect.x2 - rect.x1, rect.width),
+    height: safeRatio(rect.y2 - rect.y1, rect.height)
+  }));
+}
+
+function safeRatio(value: number, total: number) {
+  return total ? value / total : 0;
 }
 
 function dateValue(value: string) {

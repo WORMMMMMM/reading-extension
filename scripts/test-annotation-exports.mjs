@@ -9,6 +9,10 @@ const {
   formatAnnotationsMarkdown,
   sortAnnotationsByDocumentPosition
 } = require('../out/annotationExports.js');
+const {
+  advanceWordReview,
+  createInitialWordReview
+} = require('../out/wordReview.js');
 
 const timestamp = '2026-01-01T00:00:00.000Z';
 const annotations = [
@@ -49,6 +53,20 @@ const annotations = [
     updatedAt: timestamp
   },
   {
+    id: 'highlighter-position-only',
+    page: 1,
+    highlighterPosition: {
+      boundingRect: { x1: 80, y1: 160, x2: 220, y2: 180, width: 400, height: 300, pageNumber: 1 },
+      rects: [{ x1: 80, y1: 160, x2: 220, y2: 180, width: 400, height: 300, pageNumber: 1 }]
+    },
+    color: '#a6e99f',
+    kind: 'highlight',
+    selectedText: 'New highlighter schema selection',
+    note: '',
+    createdAt: timestamp,
+    updatedAt: timestamp
+  },
+  {
     id: 'page-note',
     page: 1,
     rects: [],
@@ -71,6 +89,7 @@ assert.match(markdown, /Important architecture claim\./);
 assert.match(markdown, /Context: \.\.\.In the architecture section, the authors argue that \[Transformer models align tokens across long contexts\.\] when the input grows beyond the training horizon\.\.\./);
 assert.match(markdown, /- Tags: method, important/);
 assert.match(markdown, /Page 1 \(underline, #8fd3ff\)/);
+assert.match(markdown, /New highlighter schema selection/);
 assert.match(markdown, /Re-read this page before the group meeting\./);
 assert.match(markdown, /- Tags: todo/);
 assert.ok(
@@ -79,7 +98,7 @@ assert.ok(
 );
 
 const sortedIds = sortAnnotationsByDocumentPosition(annotations).map(item => item.id);
-assert.deepEqual(sortedIds, ['highlight-with-note', 'underline-only', 'page-note', 'later-page']);
+assert.deepEqual(sortedIds, ['highlight-with-note', 'underline-only', 'highlighter-position-only', 'page-note', 'later-page']);
 
 const snippet = formatAnnotationMarkdownSnippet(annotations[1]);
 assert.match(snippet, /^### Page 1 \(highlight, #ffd654\)/);
@@ -99,5 +118,21 @@ const annots = firstPage.node.Annots();
 
 assert.ok(annots, 'annotated PDF should include native note comments');
 assert.equal(annots.size(), 2, 'notes should create one native PDF comment each');
+
+const reviewNow = new Date('2026-01-02T12:30:00.000Z');
+const initialReview = createInitialWordReview(reviewNow);
+assert.deepEqual(initialReview, {
+  level: 0,
+  nextReviewAt: '2026-01-01T16:00:00.000Z'
+});
+
+const rememberedReview = advanceWordReview(initialReview, true, reviewNow);
+assert.equal(rememberedReview.level, 1);
+assert.equal(rememberedReview.lastReviewedAt, reviewNow.toISOString());
+assert.equal(rememberedReview.nextReviewAt, '2026-01-02T16:00:00.000Z');
+
+const forgottenReview = advanceWordReview(rememberedReview, false, reviewNow);
+assert.equal(forgottenReview.level, 0);
+assert.equal(forgottenReview.nextReviewAt, '2026-01-02T16:00:00.000Z');
 
 console.log('annotation export regression passed');

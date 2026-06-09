@@ -48,17 +48,26 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "build:webview": "vite build --config vite.webview.config.ts",
+    "compile": "npm run build:webview && tsc -p ./",
     "test": "npm run compile && node scripts/test-annotation-exports.mjs",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "watch:webview": "vite build --watch --config vite.webview.config.ts"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.0.227"
+    "pdfjs-dist": "^4.10.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-pdf-highlighter-plus": "^1.1.4",
+    "vite": "^8.0.16"
   }
 }

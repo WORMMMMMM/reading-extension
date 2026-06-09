@@ -2,6 +2,8 @@ node_modules/
 out/
 dist/
 *.vsix
+*.map
+vite.webview.config.js
+webview/src/*.js
 .DS_Store
 .reading-extension/
-

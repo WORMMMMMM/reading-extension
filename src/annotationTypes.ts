@@ -2,6 +2,7 @@ export interface AnnotationRecord {
   id: string;
   page?: number;
   rects?: AnnotationRect[];
+  highlighterPosition?: PdfHighlighterPosition;
   color?: string;
   kind?: AnnotationKind;
   tags?: string[];
@@ -21,4 +22,20 @@ export interface AnnotationRect {
   y: number;
   width: number;
   height: number;
+}
+
+export interface PdfHighlighterPosition {
+  boundingRect: PdfHighlighterScaledRect;
+  rects: PdfHighlighterScaledRect[];
+  usePdfCoordinates?: boolean;
+}
+
+export interface PdfHighlighterScaledRect {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  width: number;
+  height: number;
+  pageNumber: number;
 }
