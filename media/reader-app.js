@@ -25914,7 +25914,9 @@ var Cf = window.acquireVsCodeApi(), wf = window.readerConfig, Tf = [
 	paperName: wf.paperName
 };
 function Df() {
-	let [e, t] = (0, x.useState)(Ef), [n, r] = (0, x.useState)(""), [i, a] = (0, x.useState)(), [o, s] = (0, x.useState)(""), [c, l] = (0, x.useState)(""), [u, d] = (0, x.useState)("#ffd654"), [f, p] = (0, x.useState)("highlight"), [m, h] = (0, x.useState)(), [g, _] = (0, x.useState)(""), [v, y] = (0, x.useState)(""), [b, S] = (0, x.useState)(""), [C, w] = (0, x.useState)(""), [T, E] = (0, x.useState)(""), [D, ee] = (0, x.useState)(""), [O, k] = (0, x.useState)(""), [A, j] = (0, x.useState)(""), [te, M] = (0, x.useState)("position"), [N, ne] = (0, x.useState)(1), [re, ie] = (0, x.useState)(0), [P, ae] = (0, x.useState)("page-width"), [oe, F] = (0, x.useState)("Loading PDF..."), [se, ce] = (0, x.useState)(), [le, ue] = (0, x.useState)(), de = (0, x.useRef)(null), fe = (0, x.useRef)(void 0), pe = (0, x.useRef)(void 0), me = (0, x.useRef)(!1), he = (0, x.useCallback)((e) => {
+	let [e, t] = (0, x.useState)(Ef), [n, r] = (0, x.useState)(""), [i, a] = (0, x.useState)(), [o, s] = (0, x.useState)(""), [c, l] = (0, x.useState)(""), [u, d] = (0, x.useState)("#ffd654"), [f, p] = (0, x.useState)("highlight"), [m, h] = (0, x.useState)(), [g, _] = (0, x.useState)(""), [v, y] = (0, x.useState)(""), [b, S] = (0, x.useState)(""), [C, w] = (0, x.useState)(""), [T, E] = (0, x.useState)(""), [D, ee] = (0, x.useState)(""), [O, k] = (0, x.useState)(""), [A, j] = (0, x.useState)(""), [te, M] = (0, x.useState)("position"), [N, ne] = (0, x.useState)(1), [re, ie] = (0, x.useState)(0), [P, ae] = (0, x.useState)("page-width"), [oe, F] = (0, x.useState)("Loading PDF..."), [se, ce] = (0, x.useState)(), [le, ue] = (0, x.useState)(), de = (0, x.useRef)(null), fe = (0, x.useRef)(void 0), pe = (0, x.useRef)(void 0), me = (0, x.useRef)(!1);
+	(0, x.useEffect)(() => (document.body.classList.add("reader-mounted"), () => document.body.classList.remove("reader-mounted")), []);
+	let he = (0, x.useCallback)((e) => {
 		ie(e), me.current || (me.current = !0, F("PDF loaded."));
 	}, []), ge = (0, x.useCallback)((e, t, n) => {
 		Cf.postMessage({

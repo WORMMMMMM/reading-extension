@@ -347,13 +347,20 @@ export class PaperReaderPanel {
   <title>Reading Extension</title>
 </head>
 <body>
-  <div id="root">
-    <main class="startup-state">
-      <h1>Starting reader...</h1>
-      <p>Loading the Webview script.</p>
-    </main>
-  </div>
+  <main id="startupStatus" class="startup-state">
+    <h1>Starting reader...</h1>
+    <p>Loading the Webview script.</p>
+  </main>
+  <div id="root"></div>
   <script nonce="${nonce}">
+    const showStartupError = error => {
+      const status = document.getElementById('startupStatus');
+      if (status) {
+        status.className = 'startup-state startup-error';
+        status.innerHTML = '<h1>Reader failed to start</h1><pre></pre>';
+        status.querySelector('pre').textContent = error;
+      }
+    };
     window.process = window.process || { env: {} };
     window.process.env = {
       ...window.process.env,
@@ -362,18 +369,10 @@ export class PaperReaderPanel {
     };
     window.readerConfig = ${readerConfig};
     window.addEventListener('error', event => {
-      const root = document.getElementById('root');
-      if (root) {
-        root.innerHTML = '<main class="startup-state startup-error"><h1>Reader failed to start</h1><pre></pre></main>';
-        root.querySelector('pre').textContent = event.message || String(event.error || 'Unknown Webview error');
-      }
+      showStartupError(event.message || String(event.error || 'Unknown Webview error'));
     });
     window.addEventListener('unhandledrejection', event => {
-      const root = document.getElementById('root');
-      if (root) {
-        root.innerHTML = '<main class="startup-state startup-error"><h1>Reader failed to start</h1><pre></pre></main>';
-        root.querySelector('pre').textContent = event.reason instanceof Error ? event.reason.message : String(event.reason || 'Unhandled promise rejection');
-      }
+      showStartupError(event.reason instanceof Error ? event.reason.message : String(event.reason || 'Unhandled promise rejection'));
     });
   </script>
   <script nonce="${nonce}" type="module" src="${scriptUri}"></script>

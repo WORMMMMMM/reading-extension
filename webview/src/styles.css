@@ -286,6 +286,10 @@ label {
   background: var(--vscode-editor-background);
 }
 
+.reader-mounted #startupStatus {
+  display: none;
+}
+
 .startup-state h1 {
   font-size: 18px;
 }

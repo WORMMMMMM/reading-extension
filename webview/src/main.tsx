@@ -71,6 +71,11 @@ function App() {
   const progressDebounceRef = useRef<number | undefined>(undefined);
   const documentReadyRef = useRef(false);
 
+  useEffect(() => {
+    document.body.classList.add('reader-mounted');
+    return () => document.body.classList.remove('reader-mounted');
+  }, []);
+
   const handleDocumentReady = useCallback((numPages: number) => {
     setPageTotal(numPages);
     if (!documentReadyRef.current) {
