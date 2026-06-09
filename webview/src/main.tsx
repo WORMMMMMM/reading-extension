@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   AreaHighlight,
@@ -69,6 +69,22 @@ function App() {
   const highlighterRef = useRef<PdfHighlighterUtils | null>(null);
   const editDebounceRef = useRef<number | undefined>(undefined);
   const progressDebounceRef = useRef<number | undefined>(undefined);
+  const documentReadyRef = useRef(false);
+
+  const handleDocumentReady = useCallback((numPages: number) => {
+    setPageTotal(numPages);
+    if (!documentReadyRef.current) {
+      documentReadyRef.current = true;
+      setStatus('PDF loaded.');
+    }
+  }, []);
+
+  const handleStyleChange = useCallback((annotation: AnnotationRecord, nextColor: string, nextKind: AnnotationKind) => {
+    vscode.postMessage({
+      type: 'updateAnnotation',
+      payload: { id: annotation.id, patch: { color: nextColor, kind: nextKind } }
+    });
+  }, []);
 
   useEffect(() => {
     vscode.postMessage({ type: 'ready' });
@@ -336,18 +352,10 @@ function App() {
                 pdfDocument={pdfDocument}
                 zoom={zoom}
                 onDelete={deleteAnnotation}
-                onDocumentReady={numPages => {
-                  setPageTotal(numPages);
-                  setStatus('PDF loaded.');
-                }}
+                onDocumentReady={handleDocumentReady}
                 onOpen={editAnnotation}
                 onSelection={handleSelection}
-                onStyleChange={(annotation, nextColor, nextKind) => {
-                  vscode.postMessage({
-                    type: 'updateAnnotation',
-                    payload: { id: annotation.id, patch: { color: nextColor, kind: nextKind } }
-                  });
-                }}
+                onStyleChange={handleStyleChange}
                 utilsRef={utils => {
                   highlighterRef.current = utils;
                 }}
@@ -732,4 +740,34 @@ function stopThen(callback: () => void) {
   };
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+function Bootstrap() {
+  const [error, setError] = useState<string | undefined>();
+
+  useEffect(() => {
+    const onError = (event: ErrorEvent) => {
+      setError(event.message || String(event.error || 'Unknown Webview error'));
+    };
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      setError(event.reason instanceof Error ? event.reason.message : String(event.reason || 'Unhandled promise rejection'));
+    };
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onUnhandledRejection);
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onUnhandledRejection);
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <main className="fatal-error">
+        <h1>Reader failed to start</h1>
+        <pre>{error}</pre>
+      </main>
+    );
+  }
+
+  return <App />;
+}
+
+createRoot(document.getElementById('root')!).render(<Bootstrap />);

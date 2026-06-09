@@ -274,6 +274,21 @@ label {
   background: var(--vscode-editor-background);
 }
 
+.fatal-error {
+  padding: 24px;
+  color: var(--vscode-errorForeground, #b00020);
+  background: var(--vscode-editor-background);
+}
+
+.fatal-error pre {
+  overflow: auto;
+  border: 1px solid var(--border);
+  padding: 12px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-input-background);
+  white-space: pre-wrap;
+}
+
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: 1fr;
