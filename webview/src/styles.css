@@ -280,7 +280,22 @@ label {
   background: var(--vscode-editor-background);
 }
 
-.fatal-error pre {
+.startup-state {
+  padding: 24px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+.startup-state h1 {
+  font-size: 18px;
+}
+
+.startup-error {
+  color: var(--vscode-errorForeground, #b00020);
+}
+
+.fatal-error pre,
+.startup-state pre {
   overflow: auto;
   border: 1px solid var(--border);
   padding: 12px;

@@ -14,6 +14,7 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
+        inlineDynamicImports: true,
         assetFileNames: assetInfo => assetInfo.name?.endsWith('.css') ? 'reader-app.css' : 'reader-app-[name][extname]'
       }
     }

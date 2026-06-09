@@ -32,7 +32,6 @@ This repository is a VS Code extension prototype for reading papers with transla
 - `webview/src/vscodeApi.ts`: Small wrapper around `acquireVsCodeApi()` and injected reader config.
 - `media/reader-app.js`: Generated Webview JavaScript bundle. Built by `npm run build:webview`.
 - `media/reader-app.css`: Generated Webview CSS bundle. Built by `npm run build:webview`.
-- `media/pdf_viewer-*.mjs`: Generated PDF.js viewer chunk emitted by Vite for the Webview bundle.
 
 ## Build Output
 
