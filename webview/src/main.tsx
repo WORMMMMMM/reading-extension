@@ -26,7 +26,7 @@ type PdfjsGlobal = typeof globalThis & {
 (globalThis as PdfjsGlobal).pdfjsWorker = { WorkerMessageHandler };
 
 type ReaderHighlight = Highlight & {
-  annotation: AnnotationRecord;
+  annotation?: AnnotationRecord;
 };
 
 type IncomingMessage =
@@ -540,7 +540,29 @@ function HighlightContainer({
 }) {
   const { highlight, isScrolledTo, highlightBindings } = useHighlightContainerContext<ReaderHighlight>();
   const annotation = highlight.annotation;
-  const activeClass = annotation.id === activeId ? ' active-highlight' : '';
+  const activeClass = annotation?.id === activeId ? ' active-highlight' : '';
+
+  if (!annotation) {
+    if (highlight.type === 'area') {
+      return (
+        <AreaHighlight
+          highlight={highlight}
+          isScrolledTo={isScrolledTo}
+          bounds={highlightBindings.textLayer}
+          highlightColor="#ffd654"
+        />
+      );
+    }
+
+    return (
+      <TextHighlight
+        highlight={highlight}
+        isScrolledTo={isScrolledTo}
+        highlightColor="#ffd654"
+        copyText={highlight.content?.text}
+      />
+    );
+  }
 
   if (highlight.type === 'area') {
     return (
